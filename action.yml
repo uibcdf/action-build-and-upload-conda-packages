@@ -206,12 +206,10 @@ runs:
         for dirname in *; do
           if [ -d "$dirname" ]; then
             for filename in *; do
-              if [ -f "$filename" ]; then
-                echo $dirname/$filename
-                if [ "$filename" == "*.tar.bz2" ]; then
-                  echo "anaconda upload -t TOKEN --user ${{ inputs.user_channel }} $force --label $label $dirname/$filename"
-                  anaconda upload -t ${{ inputs.token }} --user ${{ inputs.user }} $force --label $label $dirname/$filename
-                fi
+              echo $dirname/$filename
+              if [ "$filename" == "*.tar.bz2" ]; then
+                echo "anaconda upload -t TOKEN --user ${{ inputs.user_channel }} $force --label $label $dirname/$filename"
+                anaconda upload -t ${{ inputs.token }} --user ${{ inputs.user }} $force --label $label $dirname/$filename
               fi
             done
           fi
