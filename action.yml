@@ -175,7 +175,7 @@ runs:
     - name: Packages uploading
       id: packages-uploading
       shell: bash -l {0}
-      working-directory: ./${{ inputs.meta_yaml_dir }}/${{ packages-compilation.out_dir }}
+      working-directory: ./${{ inputs.meta_yaml_dir }}/${{ steps.packages-compilation.out_dir }}
       run: |
         echo "::group::Conda packages uploading"
         export ANACONDA_API_TOKEN=${{ inputs.token }}
