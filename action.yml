@@ -178,7 +178,7 @@ runs:
           rm -r $out_dir/linux-64
           echo "Package to platform linux-64 removed"
         fi
-        echo "::set-output name=out_dir::$out_dir"
+        echo "::set-output name=out_dir::'$out_dir'"
         echo "::endgroup::"
     - name: Packages uploading
       id: packages-uploading
