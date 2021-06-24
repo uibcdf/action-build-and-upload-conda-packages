@@ -182,12 +182,12 @@ runs:
       working-directory: ./${{ inputs.meta_yaml_dir }}/${{ steps.packages-compilation.out_dir }}
       run: |
         echo "::group::Conda packages uploading"
-        export ANACONDA_API_TOKEN=${{ inputs.token }}
         label=${{ inputs.label }}
         replace=""
         if "${{ inputs.replace }}"; then
-          replace=" --force "
+          replace="--force"
         fi
+        echo "DALE"
         if [ "$label" == "auto" ]; then
           if [ "${{github.event.action}}" == "released" ]; then
              label="main"
@@ -204,7 +204,7 @@ runs:
               if [ -f "$filename" ]; then
                 if [ "$filename" == "*.tar.bz2" ]; then
                   echo "anaconda upload -t TOKEN --user ${{ inputs.user_channel }} $replace --label $label $dirname/$filename"
-                  anaconda upload -t ${{ inputs.token }} --user ${{ inputs.user_channel }} $replace --label $label $dirname/$filename
+                  anaconda upload -t ${{ inputs.token }} --user ${{ inputs.user }} $replace --label $label $dirname/$filename
                 fi
               fi
             done
