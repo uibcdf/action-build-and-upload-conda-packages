@@ -186,6 +186,7 @@ runs:
       working-directory: ./${{ inputs.meta_yaml_dir }}/${{ steps.packages-compilation.out_dir }}
       run: |
         echo "::group::Conda packages uploading"
+        echo ./${{ inputs.meta_yaml_dir }}/${{ steps.packages-compilation.out_dir }}
         label=${{ inputs.label }}
         force=""
         if "${{ inputs.overwrite }}"; then
