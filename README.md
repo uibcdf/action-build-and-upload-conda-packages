@@ -37,6 +37,8 @@ on:
   release:
     types: ['released', 'prereleased']
 
+# workflow_dispatch:        # Un comment line if you also want to trigger action manually
+
 jobs:
   conda_deployment_with_new_tag:
     name: Conda deployment of package to platform ${{ matrix.platform }} with Python ${{ matrix.python-version }}
@@ -83,10 +85,10 @@ These are the input parameters of the action:
 | Input parameters | Description | Required | Default value | 
 | ---------------- | ----------- | -------- | ------------- |
 | branch | Name of the branch with the code to be built as conda packages | No | 'main' |
-| meta_yaml_dir | Path to the directory where the meta.yaml file with building instructions is located  | Yes |  |
+| meta\_yaml\_dir | Path to the directory where the meta.yaml file with building instructions is located  | Yes |  |
 | python-version | Python version of the packages to build  | Yes |  |
-| platform_all | Build packages for all supported platforms  | No | False |
-| platform_linux-64 | Build a package for the platform: linux-64 | No | False |
+| platform\_all | Build packages for all supported platforms  | No | False |
+| platform\_linux-64 | Build a package for the platform: linux-64 | No | False |
 | platform\_linux-32 | Build a package for the platform: linux-32 | No | False |
 | platform\_osx-64 | Build a package for the platform: osx-64 | No | False |
 | platform\_arm-64 | Build a package for the platform: arm-64 | No | False |
