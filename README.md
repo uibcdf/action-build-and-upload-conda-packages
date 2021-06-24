@@ -100,6 +100,7 @@ These are the input parameters of the action:
 | platform\_linux-aarch64 | Build a package for the platform: linux-aarch64 | No | False |
 | platform\_win-32 | Build a package for the platform: linux-win-32 | No | False |
 | platform\_win-64 | Build a package for the platform: linux-win-64 | No | False |
+| overwrite |  Do not cancel the uploading if a package with the same name is found already in Anaconda | No | False |
 | user | User or organization name to upload packages to on anaconda.org | True |  |
 | label | Name of the label to upload the package ('main', 'dev', ...). If the value is equal to 'auto', the action will automatically label releases as 'main' and prereleases as 'dev' | True | auto |
 | token | Anaconda token to authorize the uploading (more info [here]()) | Yes |  |

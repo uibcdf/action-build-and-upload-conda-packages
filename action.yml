@@ -67,6 +67,10 @@ inputs:
     description: Target platform win-32.
     required: false
     default: false
+  overwrite:
+    description: Do not cancel the uploading if a package with the same name is found already in Anaconda.
+    required: false
+    default: false
   user:
     description: Name of the Anaconda user or organization where the conda package will be published.
     required: true
@@ -183,11 +187,10 @@ runs:
       run: |
         echo "::group::Conda packages uploading"
         label=${{ inputs.label }}
-        replace=""
-        if "${{ inputs.replace }}"; then
-          replace="--force"
+        force=""
+        if "${{ inputs.overwrite }}"; then
+          force="--force"
         fi
-        echo "DALE"
         if [ "$label" == "auto" ]; then
           if [ "${{github.event.action}}" == "released" ]; then
              label="main"
@@ -203,8 +206,8 @@ runs:
             for filename in *; do
               if [ -f "$filename" ]; then
                 if [ "$filename" == "*.tar.bz2" ]; then
-                  echo "anaconda upload -t TOKEN --user ${{ inputs.user_channel }} $replace --label $label $dirname/$filename"
-                  anaconda upload -t ${{ inputs.token }} --user ${{ inputs.user }} $replace --label $label $dirname/$filename
+                  echo "anaconda upload -t TOKEN --user ${{ inputs.user_channel }} $force --label $label $dirname/$filename"
+                  anaconda upload -t ${{ inputs.token }} --user ${{ inputs.user }} $force --label $label $dirname/$filename
                 fi
               fi
             done
