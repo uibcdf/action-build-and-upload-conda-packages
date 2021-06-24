@@ -205,7 +205,7 @@ runs:
         fi
         for dirname in *; do
           if [ -d "$dirname" ]; then
-            for filename in *; do
+            for filename in $dirname; do
               echo $dirname/$filename
               if [ "$filename" == "*.tar.bz2" ]; then
                 echo "anaconda upload -t TOKEN --user ${{ inputs.user_channel }} $force --label $label $dirname/$filename"
