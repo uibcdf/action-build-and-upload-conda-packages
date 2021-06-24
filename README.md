@@ -81,7 +81,7 @@ Three things need to be known to run the GitHub Actions without further work: th
 These are the input parameters of the action:
 
 | Input parameters | Description | Required | Default value | 
-| ---------------- | ------------------------------------------- | ------------------------------------------------------ |
+| ---------------- | ----------- | -------- | ------------- |
 | branch | Name of the branch with the code to be built as conda packages | No | 'main' |
 | meta_yaml_dir | Path to the directory where the meta.yaml file with building instructions is located  | Yes |  |
 | python-version | Python version of the packages to build  | Yes |  |
