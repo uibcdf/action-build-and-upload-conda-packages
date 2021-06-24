@@ -1,18 +1,18 @@
-# action-conda-deployment-with-new-tag
+# build-and-upload-conda-packages
 [![Open Source Love](https://badges.frapsoft.com/os/v2/open-source.svg?v=103)](https://github.com/ellerbrock/open-source-badges/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-The sphinx documentation in a repository is automatically compiled as 'html' and deployed, by means
-of the 'gh-pages' branch, with this GitHub Action. The user has only to be sure that the repository
+If a repository contains a meta.yaml file to build conda packages, the process of building and
+uploading packages to an Anaconda user or channel is automatized by this GitHub Action. The user has only to be sure that the repository
 accomplishes [a couple of requirements](#Requirements).
 
 In summary, this GitHub action does the following:
 
-- Takes the author and SHA id of the trigger action ('push' or 'pull request') to be consistent
-  along the action.
-- Creates a new 'gh-pages' branch if this is not already in the repository.
-- Compiles the sphinx documentation in the directory and branch specified by the user.
-- Pushes the output html documentation to the 'gh-pages' branch.
+- Checks if the meta.yaml file exists in the directory specified by the user.
+- Compiles the list of packages to the platform and Python version specified by the user, in the
+  branch also specified by the user.
+- Uploads all packages built to the Anaconda user or channel specified by the user, with the label
+  specified by the user.
 
 This GitHub Action was developed by [the Computational Biology and Drug Design Research Unit -UIBCDF- at the
 Mexico City Children's Hospital Federico Gómez](https://www.uibcdf.org/). Other GitHub Actions can
@@ -20,107 +20,114 @@ be found at [the UIBCDF GitHub site](https://github.com/search?q=topic%3Agithub-
 
 ## Requirements
 
+### Anaconda token as GitHub secret
+
+
+
 ## How to use it
 
-To include this GitHub Action, put a Yaml file (named 'sphinx\_docs\_to\_gh\_pages.yaml', for instance) with the following content in the
+To include this GitHub Action, put a Yaml file (named 'build\_and\_upload\_conda\_packages.yaml', for instance) with the following content in the
 directory '.github/workflows' of your repository:
 
 ```yaml
-name: Sphinx docs to gh-pages
+
+name: Build and upload conda packages
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-
-  workflow_dispatch:
+  release:
+    types: ['released', 'prereleased']
 
 jobs:
-  sphinx_docs_to_gh-pages:
+  conda_deployment_with_new_tag:
+    name: Conda deployment of package to platform ${{ matrix.platform }} with Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
-    name: Sphinx docs to gh-pages
+    strategy:
+      matrix:
+        python-version: [3.7, 3.8, 3.9]
     steps:
       - uses: actions/checkout@v2
-      - name: Make conda environment
+      - name: Conda environment creation and activation
         uses: conda-incubator/setup-miniconda@v2
         with:
-          environment-file: devtools/conda-envs/docs_env.yaml    # Path to the documentation conda environment
-          activate-environment: docs
-          auto-update-conda: false
+          activate-environment: deployment
+          python-version: ${{ matrix.python-version }}
+          channels: conda-forge, default
           auto-activate-base: false
+          auto-update-conda: false
           show-channel-urls: true
-      - name: Running the Sphinx to gh-pages Action
-        uses: uibcdf/action-sphinx-docs-to-gh-pages@v1.0-beta.1
-          with:
-            branch: main
-            dir_docs: docs
-            sphinxopts: ''
+      - name: Installing tools and dependencies in environment to build and upload conda packages
+        shell: bash -l {0}
+        run: |
+          conda install -y anaconda-client conda-build
+      - name: Build and upload the conda packages
+        uses: uibcdf/action-build-and-upload-conda-packages@0.0.1-beta.1
+        with:
+          branch: main
+          meta_yaml_dir: devtools/conda-build
+          python-version: ${{ matrix.python-version }}
+          platform_linux-64: true
+          platform_osx-64: true
+          platform_win-64: true
+          channel: uibcdf
+          label: dev
+          token: ${{ secrets.ANACONDA_TOKEN}}
 ```
 
-Two things need to be known to run the GitHub Actions without further work: the meaning of the input parameters
-and the yaml file to make a temporary conda environment where the sphinx documentation can
-be compiled.
+
+Three things need to be known to run the GitHub Actions without further work: the meaning of the input parameters, the meta.yaml file with instructions to compile the packages -and how to work with it-, and how to include an Anaconda token to upload packages to your Anaconda user, organization or channel without login username and password.
 
 ### Input parameters
 
 These are the input parameters of the action:
 
-| Input parameters | Description | Default value | 
+| Input parameters | Description | Required | Default value | 
 | ---------------- | ------------------------------------------- | ------------------------------------------------------ |
-| branch | Name of the branch where the sphinx documentation is located | 'main' |
-| dir\_docs | Path where the sphinx documentation is located | 'docs' |
-| sphinxopts | Compilation options for sphinx-build | '' |
+| branch | Name of the branch with the code to be built as conda packages | No | 'main' |
+| meta_yaml_dir | Path to the directory where the meta.yaml file with building instructions is located  | Yes |  |
+| python-version | Python version of the packages to build  | Yes |  |
+| platform_all | Build packages for all supported platforms  | No | False |
+| platform_linux-64 | Build a package for the platform: linux-64 | No | False |
+| platform\_linux-32 | Build a package for the platform: linux-32 | No | False |
+| platform\_osx-64 | Build a package for the platform: osx-64 | No | False |
+| platform\_arm-64 | Build a package for the platform: arm-64 | No | False |
+| platform\_linux-ppc64 | Build a package for the platform: linux-ppc64 | No | False |
+| platform\_linux-ppc64le | Build a package for the platform: linux-ppc64le | No | False |
+| platform\_linux-s390x | Build a package for the platform: linux-s390x | No | False |
+| platform\_linux-armv6l | Build a package for the platform: linux-armv6l | No | False |
+| platform\_linux-armv7l | Build a package for the platform: linux-armv7l | No | False |
+| platform\_linux-aarch64 | Build a package for the platform: linux-aarch64 | No | False |
+| platform\_win-32 | Build a package for the platform: linux-win-32 | No | False |
+| platform\_win-64 | Build a package for the platform: linux-win-64 | No | False |
+| user\_channel | User, organization or channel name where the packages will be uploaded | True |  |
+| label | Name of the label to upload the package ('main', 'dev', ...). If the value is equal to 'auto', the action will automatically label releases as 'main' and prereleases as 'dev' | True | auto |
+| token | Anaconda token to authorize the uploading (more info [here]()) | Yes |  |
 
-They are placed in the last three lines of the above workflow example file:
-
-```yaml
-      - name: Running the Sphinx to gh-pages Action
-        uses: uibcdf/action-sphinx-docs-to-gh-pages@v1.0-beta.1
-          with:
-            branch: main
-            dir_docs: docs
-            sphinxopts: ''
-```
-
-In case your sphinx documentation is placed in a directory named 'docs' in the 'main' branch to be
-compiled with no further options, you can do without the section `with:`.
-
-### Deployment conda environment
-
-Your library will need specific libraries and packages to be deployed. They can be
-specified in a conda environment file. This way, a temporary enviroment can be made and activated
-to compile the conda package and upload it to your conda channel with all dependencies satisfied. Write a file in the repository with
-the following content:
+They are placed in the `with:` subsection of the step named `Build and upload the conda packages` of the above workflow example file:
 
 ```yaml
-name: deploy
-
-channels:
-
-  - conda-forge
-  - defaults
-
-dependencies:
-
-  # Write here all dependencies to compile the conda package.
-  # This list is just an example
-  - python=3.7
-```
-
-And replace the value of the workflow input parameter `environment-file:` with the right path to your deployment conda enviroment file. In
-the case of [the above example](#How-to-use-it) ('devtools/conda-envs/deploy\_env.yaml'):
-
-```yaml
-jobs:
-  sphinx_docs_to_gh-pages:
-    steps:
-      - name: Make conda environment
-        uses: conda-incubator/setup-miniconda@v2
+      - name: Build and upload the conda packages
+        uses: uibcdf/action-build-and-upload-conda-packages@0.0.1-beta.1
         with:
-          # Replace with the path to your documentation conda enviroment file
-          environment-file: devtools/conda-envs/deploy_env.yaml
+          branch: main
+          meta_yaml_dir: devtools/conda-build
+          python-version: ${{ matrix.python-version }}
+          platform_linux-64: true
+          platform_osx-64: true
+          platform_win-64: true
+          channel: uibcdf
+          label: dev
+          token: ${{ secrets.ANACONDA_TOKEN}}
 ```
+
+There are two special input parameters: `token` and `python_version`.
+
+#### `token`
+
+#### `python_version`
+
+    strategy:
+      matrix:
+        python-version: [3.7, 3.8, 3.9]
 
 ## Other tools like this one
 

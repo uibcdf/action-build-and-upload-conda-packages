@@ -1,77 +1,80 @@
-name: 'Conda deployment with new tag'
-description: 'Automatic conda package compilation and publication in the specified Anaconda channel.'
-author: "Diego Prada"
+name: 'Build and upload conda packages'
+description: 'Automatic conda package compilation and publication in the Anaconda user or channel specified by the user.'
+author: "Diego Prada-Gracia"
 branding:
   icon: "package"
   color: "orange"
 inputs:
- branch:
+  branch:
     description: Name of the branch to be compiled as conda package.
     required: false
     default: 'main'
- meta_yaml_dir:
+  meta_yaml_dir:
     description: Path to the directory in the repository where the meta.yaml file is located.
     required: true
- platform_all:
+  python-version:
+    description: Path to the directory in the repository where the meta.yaml file is located.
+    required: true
+  platform_all:
     description: Target all supported platforms.
     required: false
     default: false
- platform_osx-64:
-    description: Target platform osx-64.
+  platform_linux-64:
+    description: Target platform linux-64.
     required: false
     default: false
- platform_arm-64:
-    description: Target platform arm-64.
-    required: false
-    default: false
- platform_linux-32:
+  platform_linux-32:
     description: Target platform linux-32.
     required: false
     default: false
- platform_linux-ppc64:
+  platform_osx-64:
+    description: Target platform osx-64.
+    required: false
+    default: false
+  platform_arm-64:
+    description: Target platform arm-64.
+    required: false
+    default: false
+  platform_linux-ppc64:
     description: Target platform linux-ppc64.
     required: false
     default: false
- platform_linux-ppc64le:
+  platform_linux-ppc64le:
     description: Target platform linux-ppc64le.
     required: false
     default: false
- platform_linux-s390x:
+  platform_linux-s390x:
     description: Target platform linux-s390x.
     required: false
     default: false
- platform_linux-armv6l:
+  platform_linux-armv6l:
     description: Target platform linux-armv6l.
     required: false
     default: false
- platform_linux-armv7l:
+  platform_linux-armv7l:
     description: Target platform linux-armv7l.
     required: false
     default: false
- platform_linux-aarch64:
+  platform_linux-aarch64:
     description: Target platform linux-aarch64.
     required: false
     default: false
- platform_win-32:
+  platform_win-32:
     description: Target platform win-32.
     required: false
     default: false
- platform_win-64:
+  platform_win-64:
     description: Target platform win-32.
     required: false
     default: false
- upload:
-    description: The package will be uploaded and published.
-    required: false
-    default: true
- user:
+  user_channel:
     description: Name of the Anaconda user or channel where the conda package will be published.
     required: true
- label:
+  label:
     description: Label of conda package published.
     required: false
-    default: 'main'
- token:
+    default: auto
+  token:
     description: Token to access to anaconda cloud.
     required: false
     default: ''
@@ -79,18 +82,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: setting the committer name and email
-      id: committer
-      shell: bash
-      run: |
-        author_name="$(git show --format=%an -s)"
-        author_email="$(git show --format=%ae -s)"
-        echo "::group::Set committer"
-        echo "git config user.name $author_name"
-        git config user.name $author_name
-        echo "git config user.email $author_email"
-        git config user.email $author_email
-        echo "::endgroup::"
     - name: Moving to branch to be compiled as conda package and deploy
       id: to-branch-to-be-compiled
       shell: bash
@@ -98,7 +89,7 @@ runs:
         git checkout ${{ inputs.branch }}
     - name: Checking if meta.yaml is in meta_yaml_dir
       id: checking-meta_yaml
-      shell: bash -l {0}
+      shell: bash
       working-directory: ./${{ inputs.meta_yaml_dir }}
       run: |
         echo "::group::Checking if the file meta.yaml exists"
@@ -111,6 +102,7 @@ runs:
         echo "::endgroup::"
     - name: Packages compilation
       id: packages-compilation
+      shell: bash -l {0}
       working-directory: ./${{ inputs.meta_yaml_dir }}
       run: |
         echo "::group::Conda packages compilation"
@@ -174,21 +166,45 @@ runs:
           conda convert -p win-64 $out_dir/linux-64/*.tar.bz2 --output $out_dir
           echo "Package to platform win-64 compiled"
         fi
+        if ! "${{ inputs.platform_linux-64 }}"; then
+          rm -r $out_dir/linux-64
+          echo "Remove package to platform linux-64 compiled"
+        fi
         echo "::set-output name=out_dir::$out_dir"
         echo "::endgroup::"
     - name: Packages uploading
       id: packages-uploading
+      shell: bash -l {0}
       working-directory: ./${{ inputs.meta_yaml_dir }}/${{ packages-compilation.out_dir }}
       run: |
         echo "::group::Conda packages uploading"
         export ANACONDA_API_TOKEN=${{ inputs.token }}
+        label=${{ inputs.label }}
+        replace=""
+        if "${{ inputs.replace }}"; then
+          replace=" --force "
+        fi
+        if [ "$label" == "auto" ]; then
+          if [ "${{github.event.action}}" == "released" ]; then
+             label="main"
+          elif [ "${{github.event.action}}" == "prereleased" ]; then
+             label="dev"
+          else
+             echo "The trigger type ${{github.event.action}} is not compatible with `label: auto`"
+             exit 1
+          fi
+        fi
         for dirname in *; do
           if [ -d "$dirname" ]; then
-            if "${{ inputs.replace }}"; then
-               anaconda upload --user ${{ inputs.user }} --force --label ${{ inputs.label }} $dirname/*.tar.bz2
-            else
-               anaconda upload --user ${{ inputs.user }} --label ${{ inputs.label }} $dirname/*.tar.bz2
-            fi
+            for filename in *; do
+              if [ -f "$filename" ]; then
+                if [ "$filename" == "*.tar.bz2" ]; then
+                  echo "anaconda upload -t TOKEN --user ${{ inputs.user_channel }} $replace --label $label $dirname/$filename"
+                  anaconda upload -t ${{ inputs.token }} --user ${{ inputs.user_channel }} $replace --label $label $dirname/$filename
+                fi
+              fi
+            done
           fi
-        done
+        done 
         echo "::endgroup::"
+
