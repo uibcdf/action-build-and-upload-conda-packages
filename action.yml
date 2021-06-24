@@ -183,10 +183,9 @@ runs:
     - name: Packages uploading
       id: packages-uploading
       shell: bash -l {0}
-      working-directory: ./${{ inputs.meta_yaml_dir }}/${{ runs.steps.packages-compilation.out_dir }}
+      working-directory: ./${{ inputs.meta_yaml_dir }}/${{ steps.packages-compilation.outputs.out_dir }}
       run: |
         echo "::group::Conda packages uploading"
-        echo ./${{ inputs.meta_yaml_dir }}/${{ runs.steps.packages-compilation.out_dir }}
         label=${{ inputs.label }}
         force=""
         if "${{ inputs.overwrite }}"; then
