@@ -67,8 +67,8 @@ inputs:
     description: Target platform win-32.
     required: false
     default: false
-  user_channel:
-    description: Name of the Anaconda user or channel where the conda package will be published.
+  user:
+    description: Name of the Anaconda user or organization where the conda package will be published.
     required: true
   label:
     description: Label of conda package published.
@@ -107,75 +107,67 @@ runs:
       run: |
         echo "::group::Conda packages compilation"
         out_dir=$(mktemp -d -t compilation-XXXXXXXXXX --tmpdir=.)
-        echo "conda build . --no-anaconda-upload --output $out_dir"
-        conda build . --no-anaconda-upload --output $out_dir
+        echo "conda build . --no-anaconda-upload --output-folder $out_dir"
+        conda build . --no-anaconda-upload --output-folder $out_dir
         echo "Package to platform linux-64 compiled"
         if "${{ inputs.platform_all }}"; then
-          echo "::set-env name=platform_osx-64::inputs value true"
-          echo "::set-env name=platform_osx-arm64::inputs value true"
-          echo "::set-env name=platform_linux-32::inputs value true"
-          echo "::set-env name=platform_linux-ppc64::inputs value true"
-          echo "::set-env name=platform_linux-ppc64le::inputs value true"
-          echo "::set-env name=platform_linux-s390x::inputs value true"
-          echo "::set-env name=platform_linux-armv6l::inputs value true"
-          echo "::set-env name=platform_linux-armv7l::inputs value true"
-          echo "::set-env name=platform_linux-aarch64::inputs value true"
-          echo "::set-env name=platform_linux-win-32::inputs value true"
-          echo "::set-env name=platform_linux-win-64::inputs value true"
+          echo "conda convert -p all $out_dir/linux-64/*.tar.bz2 -o $out_dir"
+          conda convert -p all $out_dir/linux-64/*.tar.bz2 -o $out_dir
+          echo "Package to platform osx-64 compiled"
         fi
         if "${{ inputs.platform_osx-64 }}"; then
-          echo "conda convert -p osx-64 $out_dir/linux-64/*.tar.bz2 --output $out_dir"
-          conda convert -p osx-64 $out_dir/linux-64/*.tar.bz2 --output $out_dir
+          echo "conda convert -p osx-64 $out_dir/linux-64/*.tar.bz2 -o $out_dir"
+          conda convert -p osx-64 $out_dir/linux-64/*.tar.bz2 -o $out_dir
           echo "Package to platform osx-64 compiled"
         fi
         if "${{ inputs.platform_osx-arm64 }}"; then
-          echo "conda convert -p osx-arm64 $out_dir/linux-64/*.tar.bz2 --output $out_dir"
-          conda convert -p osx-arm64 $out_dir/linux-64/*.tar.bz2 --output $out_dir
+          echo "conda convert -p osx-arm64 $out_dir/linux-64/*.tar.bz2 -o $out_dir"
+          conda convert -p osx-arm64 $out_dir/linux-64/*.tar.bz2 -o $out_dir
           echo "Package to platform osx-arm64 compiled"
         fi
         if "${{ inputs.platform_linux-32 }}"; then
-          echo "conda convert -p linux-32 $out_dir/linux-64/*.tar.bz2 --output $out_dir"
-          conda convert -p linux-32 $out_dir/linux-64/*.tar.bz2 --output $out_dir
+          echo "conda convert -p linux-32 $out_dir/linux-64/*.tar.bz2 -o $out_dir"
+          conda convert -p linux-32 $out_dir/linux-64/*.tar.bz2 -o $out_dir
           echo "Package to platform linux-32 compiled"
         fi
         if "${{ inputs.platform_linux-ppc64 }}"; then
-          echo "conda convert -p linux-ppc64 $out_dir/linux-64/*.tar.bz2 --output $out_dir"
-          conda convert -p linux-ppc64 $out_dir/linux-64/*.tar.bz2 --output $out_dir
+          echo "conda convert -p linux-ppc64 $out_dir/linux-64/*.tar.bz2 -o $out_dir"
+          conda convert -p linux-ppc64 $out_dir/linux-64/*.tar.bz2 -o $out_dir
           echo "Package to platform linux-ppc64 compiled"
         fi
         if "${{ inputs.platform_linux-ppc64le }}"; then
-          echo "conda convert -p linux-ppc64le $out_dir/linux-64/*.tar.bz2 --output $out_dir"
-          conda convert -p linux-ppc64le $out_dir/linux-64/*.tar.bz2 --output $out_dir
+          echo "conda convert -p linux-ppc64le $out_dir/linux-64/*.tar.bz2 -o $out_dir"
+          conda convert -p linux-ppc64le $out_dir/linux-64/*.tar.bz2 -o $out_dir
           echo "Package to platform linux-ppc64le compiled"
         fi
         if "${{ inputs.platform_linux-s390x }}"; then
-          echo "conda convert -p linux-s390x $out_dir/linux-64/*.tar.bz2 --output $out_dir"
-          conda convert -p linux-s390x $out_dir/linux-64/*.tar.bz2 --output $out_dir
+          echo "conda convert -p linux-s390x $out_dir/linux-64/*.tar.bz2 -o $out_dir"
+          conda convert -p linux-s390x $out_dir/linux-64/*.tar.bz2 -o $out_dir
           echo "Package to platform linux-s390x compiled"
         fi
         if "${{ inputs.platform_linux-armv6l }}"; then
-          echo "conda convert -p linux-armv6l $out_dir/linux-64/*.tar.bz2 --output $out_dir"
-          conda convert -p linux-armv6l $out_dir/linux-64/*.tar.bz2 --output $out_dir
+          echo "conda convert -p linux-armv6l $out_dir/linux-64/*.tar.bz2 -o $out_dir"
+          conda convert -p linux-armv6l $out_dir/linux-64/*.tar.bz2 -o $out_dir
           echo "Package to platform linux-armv6l compiled"
         fi
         if "${{ inputs.platform_linux-armv7l }}"; then
-          echo "conda convert -p linux-armv7l $out_dir/linux-64/*.tar.bz2 --output $out_dir"
-          conda convert -p linux-armv7l $out_dir/linux-64/*.tar.bz2 --output $out_dir
+          echo "conda convert -p linux-armv7l $out_dir/linux-64/*.tar.bz2 -o $out_dir"
+          conda convert -p linux-armv7l $out_dir/linux-64/*.tar.bz2 -o $out_dir
           echo "Package to platform linux-armv7l compiled"
         fi
         if "${{ inputs.platform_linux-aarch64 }}"; then
-          echo "conda convert -p linux-aarch64 $out_dir/linux-64/*.tar.bz2 --output $out_dir"
-          conda convert -p linux-aarch64 $out_dir/linux-64/*.tar.bz2 --output $out_dir
+          echo "conda convert -p linux-aarch64 $out_dir/linux-64/*.tar.bz2 -o $out_dir"
+          conda convert -p linux-aarch64 $out_dir/linux-64/*.tar.bz2 -o $out_dir
           echo "Package to platform linux-aarch64 compiled"
         fi
         if "${{ inputs.platform_win-32 }}"; then
-          echo "conda convert -p win-32 $out_dir/linux-64/*.tar.bz2 --output $out_dir"
-          conda convert -p win-32 $out_dir/linux-64/*.tar.bz2 --output $out_dir
+          echo "conda convert -p win-32 $out_dir/linux-64/*.tar.bz2 -o $out_dir"
+          conda convert -p win-32 $out_dir/linux-64/*.tar.bz2 -o $out_dir
           echo "Package to platform win-32 compiled"
         fi
         if "${{ inputs.platform_win-64 }}"; then
-          echo "conda convert -p win-64 $out_dir/linux-64/*.tar.bz2 --output $out_dir"
-          conda convert -p win-64 $out_dir/linux-64/*.tar.bz2 --output $out_dir
+          echo "conda convert -p win-64 $out_dir/linux-64/*.tar.bz2 -o $out_dir"
+          conda convert -p win-64 $out_dir/linux-64/*.tar.bz2 -o $out_dir
           echo "Package to platform win-64 compiled"
         fi
         if ! "${{ inputs.platform_linux-64 }}"; then

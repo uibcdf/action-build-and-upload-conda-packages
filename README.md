@@ -70,7 +70,7 @@ jobs:
           platform_linux-64: true
           platform_osx-64: true
           platform_win-64: true
-          channel: uibcdf
+          user: uibcdf
           label: dev
           token: ${{ secrets.ANACONDA_TOKEN}}
 ```
@@ -100,7 +100,7 @@ These are the input parameters of the action:
 | platform\_linux-aarch64 | Build a package for the platform: linux-aarch64 | No | False |
 | platform\_win-32 | Build a package for the platform: linux-win-32 | No | False |
 | platform\_win-64 | Build a package for the platform: linux-win-64 | No | False |
-| user\_channel | User, organization or channel name where the packages will be uploaded | True |  |
+| user | User or organization name to upload packages to on anaconda.org | True |  |
 | label | Name of the label to upload the package ('main', 'dev', ...). If the value is equal to 'auto', the action will automatically label releases as 'main' and prereleases as 'dev' | True | auto |
 | token | Anaconda token to authorize the uploading (more info [here]()) | Yes |  |
 
