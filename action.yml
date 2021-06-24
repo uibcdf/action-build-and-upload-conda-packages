@@ -208,7 +208,7 @@ runs:
             for filename in $dirname/*; do
               if [ "${filename: -8}" == ".tar.bz2" ]; then
                 echo "anaconda upload -t TOKEN --user ${{ inputs.user }} $force --label $label $filename"
-                anaconda upload -t ${{ inputs.token }} --user ${{ inputs.user }} $force --label $label $filename
+                anaconda -t ${{ inputs.token }} upload --user ${{ inputs.user }} $force --label $label $filename
               fi
             done
           fi
