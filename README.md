@@ -72,7 +72,7 @@ jobs:
           platform_win-64: true
           user: uibcdf
           label: dev
-          token: ${{ secrets.ANACONDA_TOKEN}}
+          token: ${{ secrets.ANACONDA_TOKEN }}
 ```
 
 
