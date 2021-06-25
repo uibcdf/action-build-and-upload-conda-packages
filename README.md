@@ -52,7 +52,7 @@ Anaconda user or organization. In that page, the menu entrie 'Settings--> Access
 
 <br>
 <center>
-<img src="create_token.png" width="%30">
+<img src="create_token.png" width="30%">
 </center>
 <br>
 
