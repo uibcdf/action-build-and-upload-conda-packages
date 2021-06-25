@@ -5,10 +5,6 @@ branding:
   icon: "package"
   color: "orange"
 inputs:
-  branch:
-    description: Name of the branch to be compiled as conda package.
-    required: false
-    default: 'main'
   meta_yaml_dir:
     description: Path to the directory in the repository where the meta.yaml file is located.
     required: true
@@ -93,14 +89,6 @@ runs:
         echo "::group::Information of the trigger event"
         echo "Trigger event and type: $GITHUB_EVENT_NAME, ${{github.event.action}}"
         echo "Associated commit SHA and tag: $GITHUB_SHA, $GITHUB_REF"
-        echo "::endgroup::"
-    - name: Moving to branch and commit to be compiled as conda package and deploy
-      id: to-branch-to-be-compiled
-      shell: bash
-      run: |
-        echo "::group::Moving to branch and commit"
-        echo `git branch -a`
-        git checkout ${{ inputs.branch }}
         echo "::endgroup::"
     - name: Checking if meta.yaml is in meta_yaml_dir
       id: checking-meta_yaml
@@ -214,13 +202,15 @@ runs:
           fi
         fi
         export ANACONDA_API_TOKEN=${{ inputs.token }}
-        echo $ANACONDA_API_TOKEN
+        SHORT_SHA="$(git rev-parse --short $GITHUB_SHA)"
+        description="The package corresponds to the $SHORT_SHA SHA, and tag $GITHUB_REF, from the $GITHUB_REPOSITORY repository triggered by an $GITHUB_EVENT_NAME event of type ${{github.event.action}}.
+        By the Github Action uibcdf/action-build-and-upload-conda-packages."
         for dirname in *; do
           if [ -d "$dirname" ]; then
             for filename in $dirname/*; do
               if [ "${filename: -8}" == ".tar.bz2" ]; then
-                echo "anaconda upload --user ${{ inputs.user }} $force --label $label $filename"
-                anaconda upload --user ${{ inputs.user }} $force --label $label $filename
+                echo "anaconda upload --user ${{ inputs.user }} $force --label $label --description $description $filename"
+                anaconda upload --user ${{ inputs.user }} $force --label $label --description $description $filename
               fi
             done
           fi
