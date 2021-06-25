@@ -86,6 +86,14 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Getting release data
+      id: getting-release-data
+      shell: bash
+      run: |
+        echo "::group::Getting release data"
+        echo "$GITHUB_EVENT_NAME, $GITHUB_SHA, $GITHUB_REF, ${{github.event.action}}"
+        echo "::endgroup::"
+
     - name: Moving to branch to be compiled as conda package and deploy
       id: to-branch-to-be-compiled
       shell: bash

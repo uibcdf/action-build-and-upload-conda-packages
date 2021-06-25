@@ -22,7 +22,12 @@ be found at [the UIBCDF GitHub site](https://github.com/search?q=topic%3Agithub-
 
 ### Anaconda token as GitHub secret
 
+Settings-->Access
 
+AIP Tokiens
+Create access token for:
+
+[x] Allow write access to the API sie
 
 ## How to use it
 
