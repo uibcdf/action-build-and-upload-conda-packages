@@ -3,16 +3,15 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 If a repository contains a meta.yaml file to build conda packages, the process of building and
-uploading packages to an Anaconda user or channel is automatized by this GitHub Action. The user has only to be sure that the repository
-accomplishes [a couple of requirements](#Requirements).
+uploading packages to an Anaconda user or organization is automatized by this GitHub Action. The user has only to be sure that the repository [have access to the corresponding Anaconda token](#Requirements).
 
 In summary, this GitHub action does the following:
 
-- Checks if the meta.yaml file exists in the directory specified by the user.
-- Compiles the list of packages to the platform and Python version specified by the user, in the
-  branch also specified by the user.
-- Uploads all packages built to the Anaconda user or channel specified by the user, with the label
-  specified by the user.
+- It is suggested that the action is triggered by a release or a prerelease publication.
+- The action checks if the meta.yaml file exists in the directory specified by the user.
+- It compiles then the list of packages to the platform and Python version specified by the user.
+- Finnally, the action uploads all packages built to the Anaconda user or organization specified by the user, with the label
+  specified by the user (the option `auto` sets value of the label as 'main' for releases and 'dev' to prereleases).
 
 This GitHub Action was developed by [the Computational Biology and Drug Design Research Unit -UIBCDF- at the
 Mexico City Children's Hospital Federico Gómez](https://www.uibcdf.org/). Other GitHub Actions can
@@ -20,14 +19,55 @@ be found at [the UIBCDF GitHub site](https://github.com/search?q=topic%3Agithub-
 
 ## Requirements
 
+In addition to define the workflow to use this action in the '.github/workflow' directory of your
+repository. There is a thing you have to solve: an anaconda token to authorize the
+access to your conda repository or organization.
+
 ### Anaconda token as GitHub secret
 
-Settings-->Access
+In order to upload a package to your anaconda user or organization, you have to define an anaconda api token. There are two ways you can easily do it. From the command line you can execute:
 
-AIP Tokiens
-Create access token for:
+```bash
+# In case of uploading to a user profile
+# Replace 'MyToken' with the name you want for your token
+TOKEN=$(anaconda auth --create --name MyToken)
+```
 
-[x] Allow write access to the API sie
+or 
+
+```bash
+# Replace 'MyToken' with the name you want for your token
+# Replace 'MyOrg' with the name of your organization
+TOKEN=$(anaconda auth --create --name MyToken --org MyOrg)
+```
+
+You can then access to the value of your token:
+
+```bash
+echo $TOKEN
+```
+
+There is another way to create and manage your tokens. You can do it with the web page of your
+anaconda user or organization. In that page, the menu entrie 'Settings--> Access' shows the following form:
+
+<br>
+<center>
+<img src="create_token.png" width="%30">
+</center>
+<br>
+
+There, mark the option 'Allow write access to the API site', choose a name and an expiration date
+for your new token, and click 'Create'. Below this form, you will find the list of your tokens to
+view their value or remove them.
+
+Now, the last step. The repository where you want to include this GitHub action has to have access,
+quietly, to the value of this token. But you have to protect it, including the token string
+explictly in the workflow is far from being a good idea. To solve this problem, GitHub includes for
+your GitHub repositories or organizations, the possibility to store
+['encrypted secrets'](https://github.blog/2021-04-13-implementing-least-privilege-for-secrets-in-github-actions/). [You can find documentation about it in the GitHub docs site](https://docs.github.com/en/actions/reference/encrypted-secrets). Let's see here how to store the Anaconda token accesible for any public repository of an organization. Look for the section 'Settings -> Secrets' in the organization main web page in GitHub and click on the button 'New organization scret'. Briefly, choose a new name -this way for the variable storing the token value in GitHub- and copy the value of your token (a long string of "random" characters). As you can see in the secret creation form, you can give access to all public repositories in the organization or just a selected set of them (also to your private ones depending on your plan).
+
+After all this process, what matters to use this GitHub Action is the name of the secret with the
+Anaconda token value.
 
 ## How to use it
 
@@ -67,21 +107,18 @@ jobs:
         run: |
           conda install -y anaconda-client conda-build
       - name: Build and upload the conda packages
-        uses: uibcdf/action-build-and-upload-conda-packages@0.0.1-beta.1
+        uses: uibcdf/action-build-and-upload-conda-packages@v1.0-beta.1
         with:
-          branch: main
           meta_yaml_dir: devtools/conda-build
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{ matrix.python-version }} # Values previously defined in `matrix`
           platform_linux-64: true
           platform_osx-64: true
           platform_win-64: true
           user: uibcdf
-          label: dev
-          token: ${{ secrets.ANACONDA_TOKEN }}
+          label: auto
+          token: ${{ secrets.ANACONDA_TOKEN }} # Replace with the right name of your secret
 ```
 
-
-Three things need to be known to run the GitHub Actions without further work: the meaning of the input parameters, the meta.yaml file with instructions to compile the packages -and how to work with it-, and how to include an Anaconda token to upload packages to your Anaconda user, organization or channel without login username and password.
 
 ### Input parameters
 
@@ -89,9 +126,8 @@ These are the input parameters of the action:
 
 | Input parameters | Description | Required | Default value | 
 | ---------------- | ----------- | -------- | ------------- |
-| branch | Name of the branch with the code to be built as conda packages | No | 'main' |
 | meta\_yaml\_dir | Path to the directory where the meta.yaml file with building instructions is located  | Yes |  |
-| python-version | Python version of the packages to build  | Yes |  |
+| python-version | Python version of the packages to build | Yes |  |
 | platform\_all | Build packages for all supported platforms  | No | False |
 | platform\_linux-64 | Build a package for the platform: linux-64 | No | False |
 | platform\_linux-32 | Build a package for the platform: linux-32 | No | False |
@@ -108,34 +144,40 @@ These are the input parameters of the action:
 | overwrite |  Do not cancel the uploading if a package with the same name is found already in Anaconda | No | False |
 | user | User or organization name to upload packages to on anaconda.org | True |  |
 | label | Name of the label to upload the package ('main', 'dev', ...). If the value is equal to 'auto', the action will automatically label releases as 'main' and prereleases as 'dev' | True | auto |
-| token | Anaconda token to authorize the uploading (more info [here]()) | Yes |  |
+| token | Anaconda token to authorize the uploading (more info [here](#Anaconda-token-as-GitHub-secret)) | Yes |  |
 
 They are placed in the `with:` subsection of the step named `Build and upload the conda packages` of the above workflow example file:
 
 ```yaml
       - name: Build and upload the conda packages
-        uses: uibcdf/action-build-and-upload-conda-packages@0.0.1-beta.1
+        uses: uibcdf/action-build-and-upload-conda-packages@v1.0
         with:
-          branch: main
           meta_yaml_dir: devtools/conda-build
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{ matrix.python-version }} # Values previously defined in `matrix`
           platform_linux-64: true
           platform_osx-64: true
           platform_win-64: true
           channel: uibcdf
           label: dev
-          token: ${{ secrets.ANACONDA_TOKEN}}
+          token: ${{ secrets.ANACONDA_TOKEN }}
 ```
 
-There are two special input parameters: `token` and `python_version`.
-
-#### `token`
+At this point, you can probably wonder: but the python version of the package is specified in the
+'meta.yaml' file, isn't it?
 
 #### `python_version`
 
+To define the python versions of the packages created by the GitHub Action you should use the input
+parameter of [the workflow](#How-to-use-it) named `strategy: matrix: python-version`.
+
+```yaml
     strategy:
       matrix:
         python-version: [3.7, 3.8, 3.9]
+```
+
+No matter the python version found in the 'meta.yaml' file, this action will make all the work to
+convert the building instructions to the python versions you specify in your GitHub workflow.
 
 ## Other tools like this one
 
@@ -151,7 +193,7 @@ If you think that your GitHub Action should be mentioned here, fell free to PR w
 https://github.com/fdiblen/anaconda-action   
 https://github.com/MichaelsJP/conda-package-publish-action    
 https://github.com/Jegp/conda-package-publish-action    
-https://github.com/amauryval/publish_conda_package_action    
+https://github.com/amauryval/publish\_conda\_package\_action    
 https://github.com/elbeejay/conda-publish-action    
 https://github.com/maxibor/conda-package-publish-action    
 https://github.com/m0nhawk/conda-package-publish-action    
