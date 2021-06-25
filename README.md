@@ -10,7 +10,7 @@ In summary, this GitHub Action does the following:
 - It is suggested that the action is triggered by a release or a prerelease publication.
 - The action checks if the meta.yaml file exists in the directory specified by the user.
 - It compiles then the list of packages to the platform and Python version specified by the user.
-- Finnally, the action uploads all packages built to the Anaconda user or organization specified by the user, with the label
+- Finally, the action uploads all packages built to the Anaconda user or organization specified by the user, with the label
   specified by the user (the option `auto` sets the value of the label as 'main' for releases and 'dev' to prereleases).
 
 This GitHub Action was developed by [the Computational Biology and Drug Design Research Unit -UIBCDF- at the
