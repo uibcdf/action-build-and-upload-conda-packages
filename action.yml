@@ -187,7 +187,6 @@ runs:
       run: |
         echo "::group::Conda packages uploading"
         cd ${{ steps.packages-compilation.outputs.out_dir }}
-        echo $PWD
         label=${{ inputs.label }}
         force=""
         if "${{ inputs.overwrite }}"; then
@@ -204,6 +203,7 @@ runs:
           fi
         fi
         export ANACONDA_API_TOKEN=${{ inputs.token }}
+        echo $ANACONDA_API_TOKEN
         for dirname in *; do
           if [ -d "$dirname" ]; then
             for filename in $dirname/*; do
