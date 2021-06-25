@@ -5,13 +5,13 @@
 If a repository contains a meta.yaml file to build conda packages, the process of building and
 uploading packages to an Anaconda user or organization is automatized by this GitHub Action. The user has only to be sure that the repository [have access to the corresponding Anaconda token](#Requirements).
 
-In summary, this GitHub action does the following:
+In summary, this GitHub Action does the following:
 
 - It is suggested that the action is triggered by a release or a prerelease publication.
 - The action checks if the meta.yaml file exists in the directory specified by the user.
 - It compiles then the list of packages to the platform and Python version specified by the user.
 - Finnally, the action uploads all packages built to the Anaconda user or organization specified by the user, with the label
-  specified by the user (the option `auto` sets value of the label as 'main' for releases and 'dev' to prereleases).
+  specified by the user (the option `auto` sets the value of the label as 'main' for releases and 'dev' to prereleases).
 
 This GitHub Action was developed by [the Computational Biology and Drug Design Research Unit -UIBCDF- at the
 Mexico City Children's Hospital Federico Gómez](https://www.uibcdf.org/). Other GitHub Actions can
@@ -20,12 +20,12 @@ be found at [the UIBCDF GitHub site](https://github.com/search?q=topic%3Agithub-
 ## Requirements
 
 In addition to define the workflow to use this action in the '.github/workflow' directory of your
-repository. There is a thing you have to solve: an anaconda token to authorize the
+repository. There is a thing you have to solve: an Anaconda token to authorize the
 access to your conda repository or organization.
 
 ### Anaconda token as GitHub secret
 
-In order to upload a package to your anaconda user or organization, you have to define an anaconda api token. There are two ways you can easily do it. From the command line you can execute:
+In order to upload a package to your anaconda user or organization, you have to define an Anaconda API token. There are two ways you can easily do it. From the command line you can execute:
 
 ```bash
 # In case of uploading to a user profile
@@ -41,14 +41,14 @@ or
 TOKEN=$(anaconda auth --create --name MyToken --org MyOrg)
 ```
 
-You can then access to the value of your token:
+After that, You can access to the value of your token:
 
 ```bash
 echo $TOKEN
 ```
 
 There is another way to create and manage your tokens. You can do it with the web page of your
-anaconda user or organization. In that page, the menu entrie 'Settings--> Access' shows the following form:
+Anaconda user or organization. In that page, the menu entrie 'Settings--> Access' shows the following form:
 
 <br>
 <center>
@@ -56,18 +56,18 @@ anaconda user or organization. In that page, the menu entrie 'Settings--> Access
 </center>
 <br>
 
-There, mark the option 'Allow write access to the API site', choose a name and an expiration date
+In this form mark the option 'Allow write access to the API site', choose a name and an expiration date
 for your new token, and click 'Create'. Below this form, you will find the list of your tokens to
 view their value or remove them.
 
-Now, the last step. The repository where you want to include this GitHub action has to have access,
+Now, the last step. The repository where you want to include this GitHub Action has to have access,
 quietly, to the value of this token. But you have to protect it, including the token string
 explictly in the workflow is far from being a good idea. To solve this problem, GitHub includes for
 your GitHub repositories or organizations, the possibility to store
 ['encrypted secrets'](https://github.blog/2021-04-13-implementing-least-privilege-for-secrets-in-github-actions/). [You can find documentation about it in the GitHub docs site](https://docs.github.com/en/actions/reference/encrypted-secrets). Let's see here how to store the Anaconda token accesible for any public repository of an organization. Look for the section 'Settings -> Secrets' in the organization main web page in GitHub and click on the button 'New organization scret'. Briefly, choose a new name -this way for the variable storing the token value in GitHub- and copy the value of your token (a long string of "random" characters). As you can see in the secret creation form, you can give access to all public repositories in the organization or just a selected set of them (also to your private ones depending on your plan).
 
-After all this process, what matters to use this GitHub Action is the name of the secret with the
-Anaconda token value.
+After all this process, **what matters to use this GitHub Action is the name of the secret with the
+Anaconda token value**.
 
 ## How to use it
 
