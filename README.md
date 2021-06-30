@@ -81,7 +81,7 @@ package. To avoid adding it manually and to use the release or prerelease GitHub
 ```yaml
 package:
   name: package_name # write your library name
-  version: {{ environ['GIT_DESCRIBE_TAG'] }}
+  version: "{{ environ['GIT_DESCRIBE_TAG'] }}"
 
 source:
   path: ../../
@@ -89,6 +89,8 @@ source:
 build:
   number: 1
 ```
+
+[Remember that version numbers including the dash character "-" are not supported by conda-build](https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#package-version) as package versions. If you want to release a version like "1.0.0-beta.1", repleace it with something like "1.0.0b1". Check [PEPE-86 verlib conventions](https://www.python.org/dev/peps/pep-0386/) for further details.
 
 ## How to use it
 
