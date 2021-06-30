@@ -110,8 +110,8 @@ runs:
       run: |
         echo "::group::Conda packages compilation"
         out_dir=$(mktemp -d -t compilation-XXXXXXXXXX --tmpdir=.)
-        echo "conda build . --no-anaconda-upload --output-folder $out_dir --python {{ inputs.python-version }}"
-        conda build . --no-anaconda-upload --output-folder $out_dir
+        echo "conda build . --no-anaconda-upload --output-folder $out_dir --python ${{ inputs.python-version }}"
+        conda build . --no-anaconda-upload --output-folder $out_dir --python ${{ inputs.python-version }}
         echo "Package to platform linux-64 compiled"
         if "${{ inputs.platform_all }}"; then
           echo "conda convert -p all $out_dir/linux-64/*.tar.bz2 -o $out_dir"
