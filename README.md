@@ -69,6 +69,27 @@ your GitHub repositories or organizations, the possibility to store
 After all this process, **what matters to use this GitHub Action is the name of the secret with the
 Anaconda token value**.
 
+### Git Tag as package version
+
+The instructions to build the new conda packages are defined by means of a YAML file usually named
+'meta.yaml'. It is your work having this file well implemented. [Here you can find a guide to decide
+the building parameters in this file](https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html).
+
+In this metadata file, the conda-build recipe includes setting the version number of the new
+package. To avoid adding it manually and to use the release or prerelease GitHub tags as version label, use `{{ environ['GIT_DESCRIBE_TAG'] }}` in the `package: version:` field of the 'meta.yaml' file. Then, the first lines or your 'meta.yaml' file should look like this:
+
+```yaml
+package:
+  name: package_name # write your library name
+  version: {{ environ['GIT_DESCRIBE_TAG'] }}
+
+source:
+  path: ../../
+
+build:
+  number: 1
+```
+
 ## How to use it
 
 To include this GitHub Action, put a Yaml file (named 'build\_and\_upload\_conda\_packages.yaml', for instance) with the following content in the
@@ -127,7 +148,7 @@ These are the input parameters of the action:
 | Input parameters | Description | Required | Default value | 
 | ---------------- | ----------- | -------- | ------------- |
 | meta\_yaml\_dir | Path to the directory where the meta.yaml file with building instructions is located  | Yes |  |
-| python-version | Python version of the packages to build | Yes |  |
+| python-version | Python version of the built packages | Yes |  |
 | platform\_all | Build packages for all supported platforms  | No | False |
 | platform\_linux-64 | Build a package for the platform: linux-64 | No | False |
 | platform\_linux-32 | Build a package for the platform: linux-32 | No | False |

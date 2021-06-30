@@ -9,7 +9,7 @@ inputs:
     description: Path to the directory in the repository where the meta.yaml file is located.
     required: true
   python-version:
-    description: Path to the directory in the repository where the meta.yaml file is located.
+    description: Python version of the package to be built.
     required: true
   platform_all:
     description: Target all supported platforms.
@@ -110,7 +110,7 @@ runs:
       run: |
         echo "::group::Conda packages compilation"
         out_dir=$(mktemp -d -t compilation-XXXXXXXXXX --tmpdir=.)
-        echo "conda build . --no-anaconda-upload --output-folder $out_dir"
+        echo "conda build . --no-anaconda-upload --output-folder $out_dir --python {{ inputs.python-version }}"
         conda build . --no-anaconda-upload --output-folder $out_dir
         echo "Package to platform linux-64 compiled"
         if "${{ inputs.platform_all }}"; then
