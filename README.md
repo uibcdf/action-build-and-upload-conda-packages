@@ -128,7 +128,7 @@ jobs:
         run: |
           conda install -y anaconda-client conda-build
       - name: Build and upload the conda packages
-        uses: uibcdf/action-build-and-upload-conda-packages@v1.0-beta.1
+        uses: uibcdf/action-build-and-upload-conda-packages@v1.0-beta.2
         with:
           meta_yaml_dir: devtools/conda-build
           python-version: ${{ matrix.python-version }} # Values previously defined in `matrix`
