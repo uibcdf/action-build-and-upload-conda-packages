@@ -142,10 +142,6 @@ jobs:
           auto-update-conda: false
           auto-activate-base: false
           show-channel-urls: true
-      - name: Installing tools and dependencies in environment to build and upload conda packages
-        shell: bash -l {0}
-        run: |
-          conda install -y anaconda-client conda-build
       - name: Build and upload the conda packages
         uses: uibcdf/action-build-and-upload-conda-packages@v1.0-beta.2
         with:
