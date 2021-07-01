@@ -20,8 +20,9 @@ be found at [the UIBCDF GitHub site](https://github.com/search?q=topic%3Agithub-
 ## Requirements
 
 In addition to define the workflow to use this action in the '.github/workflow' directory of your
-repository. There is a thing you have to solve: an Anaconda token to authorize the
-access to your conda repository or organization.
+repository. There are three things you have to solve: having an Anaconda token to authorize the
+access to your conda repository or organization, using Git tags as package version numbers in the metadata file with the conda build instructions, and a Yaml file to create a conda environment to
+work with conda-build.
 
 ### Anaconda token as GitHub secret
 
@@ -92,6 +93,23 @@ build:
 
 [Remember that version numbers including the dash character "-" are not supported by conda-build](https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#package-version) as package versions. If you want to release a version like "1.0.0-beta.1", replace it with something like "1.0.0b1". Check [PEPE-86 verlib conventions](https://www.python.org/dev/peps/pep-0386/) for further details.
 
+### A Yaml file to create a conda environment to work with conda-build
+
+Building your conda packages requires dependencies that can be solved with a
+temporary conda environment. You already know that the list of dependencies of your library are specified in [your 'meta.yaml' file with the compilation instructions](), but the required channels needed to find them need to be provided. In the case of this GitHub Action, these channels are taken from the Yaml file with the details to execute the packages compilation (see the section ["Documentation conda environment"](#Documentation-conda-environment)). This Yaml file will look like:
+
+```yaml
+channels:    # write here the list of channels to look for your library dependencies
+  - uibcdf
+  - conda-forge
+  - default
+
+dependencies:   # Keep this block with only these two packages
+  - anaconda-client
+  - conda-build
+```
+
+
 ## How to use it
 
 To include this GitHub Action, put a Yaml file (named 'build\_and\_upload\_conda\_packages.yaml', for instance) with the following content in the
@@ -119,11 +137,10 @@ jobs:
       - name: Conda environment creation and activation
         uses: conda-incubator/setup-miniconda@v2
         with:
-          activate-environment: deployment
           python-version: ${{ matrix.python-version }}
-          channels: conda-forge, default
-          auto-activate-base: false
+          environment-file: devtools/conda-envs/build_env.yaml    # Path to the build conda environment
           auto-update-conda: false
+          auto-activate-base: false
           show-channel-urls: true
       - name: Installing tools and dependencies in environment to build and upload conda packages
         shell: bash -l {0}
