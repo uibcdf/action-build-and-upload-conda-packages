@@ -127,7 +127,7 @@ on:
 
 jobs:
   conda_deployment_with_new_tag:
-    name: Conda deployment of package to platform ${{ matrix.platform }} with Python ${{ matrix.python-version }}
+    name: Conda deployment of package with Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -143,13 +143,60 @@ jobs:
           auto-activate-base: false
           show-channel-urls: true
       - name: Build and upload the conda packages
-        uses: uibcdf/action-build-and-upload-conda-packages@v1.0-beta.2
+        uses: uibcdf/action-build-and-upload-conda-packages@v1.0-beta.3
         with:
           meta_yaml_dir: devtools/conda-build
           python-version: ${{ matrix.python-version }} # Values previously defined in `matrix`
           platform_linux-64: true
           platform_osx-64: true
           platform_win-64: true
+          user: uibcdf
+          label: auto
+          token: ${{ secrets.ANACONDA_TOKEN }} # Replace with the right name of your secret
+```
+
+#### Host platform package and conversion to other platforms
+
+When the package is built from a pure python library, [`conda convert` can produce packages for a
+long list of platforms](https://docs.conda.io/projects/conda-build/en/latest/user-guide/tutorials/build-pkgs-skeleton.html?highlight=platform#optional-converting-conda-package-for-other-platforms). Instead, if you have to build a package that contains compiled code, `conda
+convert` does not work and just the platform of the host machine will be built. In this former
+case, if you want to produce packages for instance for 'linux-64', 'osx-64' and 'win-64, use
+something like the following:
+
+```yaml
+
+name: Build and upload conda packages
+
+on:
+  release:
+    types: ['released', 'prereleased']
+
+# workflow_dispatch:        # Un comment line if you also want to trigger action manually
+
+jobs:
+  conda_deployment_with_new_tag:
+    name: Conda deployment of package for platform ${{ matrix.os }} with Python ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macOS-latest, ubuntu-latest, windows-latest]
+        python-version: [3.7, 3.8, 3.9]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Conda environment creation and activation
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+          environment-file: devtools/conda-envs/build_env.yaml    # Path to the build conda environment
+          auto-update-conda: false
+          auto-activate-base: false
+          show-channel-urls: true
+      - name: Build and upload the conda packages
+        uses: uibcdf/action-build-and-upload-conda-packages@v1.0-beta.3
+        with:
+          meta_yaml_dir: devtools/conda-build
+          python-version: ${{ matrix.python-version }} # Values previously defined in `matrix`
           user: uibcdf
           label: auto
           token: ${{ secrets.ANACONDA_TOKEN }} # Replace with the right name of your secret
@@ -164,6 +211,7 @@ These are the input parameters of the action:
 | ---------------- | ----------- | -------- | ------------- |
 | meta\_yaml\_dir | Path to the directory where the meta.yaml file with building instructions is located  | Yes |  |
 | python-version | Python version of the built packages | Yes |  |
+| platform\_host | Build packages for the host platform | No | True |
 | platform\_all | Build packages for all supported platforms  | No | False |
 | platform\_linux-64 | Build a package for the platform: linux-64 | No | False |
 | platform\_linux-32 | Build a package for the platform: linux-32 | No | False |
