@@ -113,7 +113,7 @@ runs:
       working-directory: ./${{ inputs.meta_yaml_dir }}
       run: |
         echo "::group::Building conda package for host platform"
-        out_dir=$(mktemp -d -t compilation-XXXXXXXXXX --tmpdir=.)
+        out_dir=`mktemp -d -t compilation-XXXXXXXXXX`
         echo "conda build . --no-anaconda-upload --output-folder $out_dir --python ${{ inputs.python-version }}"
         conda build . --no-anaconda-upload --output-folder $out_dir --python ${{ inputs.python-version }}
         for dirname in $out_dir/*; do
