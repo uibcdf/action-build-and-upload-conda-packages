@@ -129,86 +129,71 @@ runs:
         du -sh $HOST_PACKAGE
         echo "::endgroup::"
         echo "::group::Building conda package for other platforms"
-        echo "SI"
-        more /home/runner/work/_temp/*.sh
         if "${{ inputs.platform_all }}"; then
           echo "conda convert -p all $HOST_PACKAGE -o $out_dir"
           conda convert -p all $HOST_PACKAGE -o $out_dir
           echo "Package for all platforms compiled"
         fi
-        echo "SI1"
         if "${{ inputs.platform_linux-64 }}"; then
           echo "conda convert -p linux-64 $HOST_PACKAGE -o $out_dir"
           conda convert -p linux-64 $HOST_PACKAGE -o $out_dir
           echo "Package for platform linux-64 compiled"
         fi
-        echo "SI2"
         if "${{ inputs.platform_osx-64 }}"; then
           echo "conda convert -p osx-64 $HOST_PACKAGE -o $out_dir"
           conda convert -p osx-64 $HOST_PACKAGE -o $out_dir
           echo "Package for platform osx-64 compiled"
         fi
-        echo "SI3"
         if "${{ inputs.platform_osx-arm64 }}"; then
           echo "conda convert -p osx-arm64 $HOST_PACKAGE -o $out_dir"
           conda convert -p osx-arm64 $HOST_PACKAGE -o $out_dir
           echo "Package for platform osx-arm64 compiled"
         fi
-        echo "SI4"
         if "${{ inputs.platform_linux-32 }}"; then
           echo "conda convert -p linux-32 $HOST_PACKAGE -o $out_dir"
           conda convert -p linux-32 $HOST_PACKAGE -o $out_dir
           echo "Package for platform linux-32 compiled"
         fi
-        echo "SI5"
         if "${{ inputs.platform_linux-ppc64 }}"; then
           echo "conda convert -p linux-ppc64 $HOST_PACKAGE -o $out_dir"
           conda convert -p linux-ppc64 $HOST_PACKAGE -o $out_dir
           echo "Package for platform linux-ppc64 compiled"
         fi
-        echo "SI6"
         if "${{ inputs.platform_linux-ppc64le }}"; then
           echo "conda convert -p linux-ppc64le $HOST_PACKAGE -o $out_dir"
           conda convert -p linux-ppc64le $HOST_PACKAGE -o $out_dir
           echo "Package for platform linux-ppc64le compiled"
         fi
-        echo "SI7"
         if "${{ inputs.platform_linux-s390x }}"; then
           echo "conda convert -p linux-s390x $HOST_PACKAGE -o $out_dir"
           conda convert -p linux-s390x $HOST_PACKAGE -o $out_dir
           echo "Package for platform linux-s390x compiled"
         fi
-        echo "SI8"
         if "${{ inputs.platform_linux-armv6l }}"; then
           echo "conda convert -p linux-armv6l $HOST_PACKAGE -o $out_dir"
           conda convert -p linux-armv6l $HOST_PACKAGE -o $out_dir
           echo "Package for platform linux-armv6l compiled"
         fi
-        echo "SI9"
         if "${{ inputs.platform_linux-armv7l }}"; then
           echo "conda convert -p linux-armv7l $HOST_PACKAGE -o $out_dir"
           conda convert -p linux-armv7l $HOST_PACKAGE -o $out_dir
           echo "Package for platform linux-armv7l compiled"
         fi
-        echo "SI10"
         if "${{ inputs.platform_linux-aarch64 }}"; then
           echo "conda convert -p linux-aarch64 $HOST_PACKAGE -o $out_dir"
           conda convert -p linux-aarch64 $HOST_PACKAGE -o $out_dir
           echo "Package for platform linux-aarch64 compiled"
         fi
-        echo "SI11"
         if "${{ inputs.platform_win-32 }}"; then
           echo "conda convert -p win-32 $HOST_PACKAGE -o $out_dir"
           conda convert -p win-32 $HOST_PACKAGE -o $out_dir
           echo "Package for platform win-32 compiled"
         fi
-        echo "SI12"
         if "${{ inputs.platform_win-64 }}"; then
           echo "conda convert -p win-64 $HOST_PACKAGE -o $out_dir"
           conda convert -p win-64 $HOST_PACKAGE -o $out_dir
           echo "Package for platform win-64 compiled"
         fi
-        echo "SISI"
         if ! "${{ inputs.platform_host }}"; then
           rm $HOST_PACKAGE
           echo "Package for host platform removed"
