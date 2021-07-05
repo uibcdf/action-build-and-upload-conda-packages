@@ -114,10 +114,18 @@ runs:
       run: |
         echo "::group::Building conda package for host platform"
         out_dir=$(mktemp -d -t compilation-XXXXXXXXXX --tmpdir=.)
-        echo "conda build . --no-anaconda-upload --output-folder $out_dir --python ${{ inputs.python-version }} --output"
-        HOST_PACKAGE=`conda build . --no-anaconda-upload --output-folder $out_dir --python ${{ inputs.python-version }} --output`
+        echo "conda build . --no-anaconda-upload --output-folder $out_dir --python ${{ inputs.python-version }}"
+        conda build . --no-anaconda-upload --output-folder $out_dir --python ${{ inputs.python-version }}
+        for dirname in $out_dir/*; do
+          if [ -d "$dirname" ]; then
+            for filename in $dirname/*; do
+              if [ "${filename: -8}" == ".tar.bz2" ]; then
+                HOST_PACKAGE=$filename
+              fi
+            done
+          fi
+        done
         echo "Package for host platform compiled as $HOST_PACKAGE"
-        echo `ls -lah $HOST_PACKAGE`
         echo "::endgroup::"
         echo "::group::Building conda package for other platforms"
         if "${{ inputs.platform_all }}"; then
@@ -197,7 +205,7 @@ runs:
       working-directory: ./${{ inputs.meta_yaml_dir }}
       run: |
         echo "::group::Conda packages uploading"
-        cd ${{ steps.packages-compilation.outputs.out_dir }}
+        #cd ${{ steps.packages-compilation.outputs.out_dir }}
         label=${{ inputs.label }}
         force=""
         if "${{ inputs.overwrite }}"; then
@@ -215,7 +223,7 @@ runs:
         fi
         export ANACONDA_API_TOKEN=${{ inputs.token }}
         SHORT_SHA="$(git rev-parse --short $GITHUB_SHA)"
-        for dirname in *; do
+        for dirname in ${{ steps.packages-compilation.outputs.out_dir }}/*; do
           if [ -d "$dirname" ]; then
             for filename in $dirname/*; do
               if [ "${filename: -8}" == ".tar.bz2" ]; then
