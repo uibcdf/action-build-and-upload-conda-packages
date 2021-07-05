@@ -114,8 +114,8 @@ runs:
       run: |
         echo "::group::Building conda package for host platform"
         out_dir=$(mktemp -d -t compilation-XXXXXXXXXX --tmpdir=.)
-        echo "conda build . --no-anaconda-upload --output-folder $out_dir --python ${{ inputs.python-version }}"
-        HOST_PACKAGE=`conda build . --no-anaconda-upload --output-folder $out_dir --python ${{ inputs.python-version }}`
+        echo "conda build . --no-anaconda-upload --output-folder $out_dir --python ${{ inputs.python-version }} --output"
+        HOST_PACKAGE=`conda build . --no-anaconda-upload --output-folder $out_dir --python ${{ inputs.python-version }} --output`
         echo "Package for host platform compiled as $HOST_PACKAGE"
         echo "::endgroup::"
         echo "::group::Building conda package for other platforms"
