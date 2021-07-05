@@ -216,7 +216,7 @@ These are the input parameters of the action:
 | platform\_linux-64 | Build a package for the platform: linux-64 | No | False |
 | platform\_linux-32 | Build a package for the platform: linux-32 | No | False |
 | platform\_osx-64 | Build a package for the platform: osx-64 | No | False |
-| platform\_arm-64 | Build a package for the platform: arm-64 | No | False |
+| platform\_osx-arm64 | Build a package for the platform: osx-arm64 | No | False |
 | platform\_linux-ppc64 | Build a package for the platform: linux-ppc64 | No | False |
 | platform\_linux-ppc64le | Build a package for the platform: linux-ppc64le | No | False |
 | platform\_linux-s390x | Build a package for the platform: linux-s390x | No | False |

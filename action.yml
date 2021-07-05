@@ -31,8 +31,8 @@ inputs:
     description: Target platform osx-64.
     required: false
     default: false
-  platform_arm-64:
-    description: Target platform arm-64.
+  platform_osx-arm64:
+    description: Target platform osx-arm64.
     required: false
     default: false
   platform_linux-ppc64:
