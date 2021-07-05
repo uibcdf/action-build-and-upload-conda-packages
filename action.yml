@@ -117,6 +117,7 @@ runs:
         echo "conda build . --no-anaconda-upload --output-folder $out_dir --python ${{ inputs.python-version }} --output"
         HOST_PACKAGE=`conda build . --no-anaconda-upload --output-folder $out_dir --python ${{ inputs.python-version }} --output`
         echo "Package for host platform compiled as $HOST_PACKAGE"
+        echo `ls -lah $HOST_PACKAGE`
         echo "::endgroup::"
         echo "::group::Building conda package for other platforms"
         if "${{ inputs.platform_all }}"; then
