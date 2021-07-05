@@ -126,8 +126,10 @@ runs:
           fi
         done
         echo "Package for host platform compiled as $HOST_PACKAGE"
+        du -sh $HOST_PACKAGE
         echo "::endgroup::"
         echo "::group::Building conda package for other platforms"
+        echo "SI"
         if "${{ inputs.platform_all }}"; then
           echo "conda convert -p all $HOST_PACKAGE -o $out_dir"
           conda convert -p all $HOST_PACKAGE -o $out_dir
@@ -193,6 +195,7 @@ runs:
           conda convert -p win-64 $HOST_PACKAGE -o $out_dir
           echo "Package for platform win-64 compiled"
         fi
+        echo "SISI"
         if ! "${{ inputs.platform_host }}"; then
           rm $HOST_PACKAGE
           echo "Package for host platform removed"
