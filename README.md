@@ -134,6 +134,8 @@ jobs:
         python-version: [3.7, 3.8, 3.9]
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
       - name: Conda environment creation and activation
         uses: conda-incubator/setup-miniconda@v2
         with:
