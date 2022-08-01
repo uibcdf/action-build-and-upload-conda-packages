@@ -15,6 +15,10 @@ inputs:
     description: Using boa (mambabuild) to build the packages.
     required: false
     default: false
+  skip-failures: true
+    description: Do not cancel the action if a building fails.
+    required: false
+    default: true
   platform_host:
     description: Target host plaform.
     required: false
@@ -140,68 +144,133 @@ runs:
         echo "::group::Building conda package for other platforms"
         if "${{ inputs.platform_all }}"; then
           echo "conda convert -p all $HOST_PACKAGE -o $out_dir"
-          conda convert -p all $HOST_PACKAGE -o $out_dir
-          echo "Package for all platforms compiled"
+          if "${{ inputs.skip-failures }}"; then
+            conda convert -p all $HOST_PACKAGE -o $out_dir || true
+            echo "Package for all platforms compiled"
+          else 
+            conda convert -p all $HOST_PACKAGE -o $out_dir
+            echo "Package for all platforms compiled"
+          fi
         fi
         if "${{ inputs.platform_linux-64 }}"; then
           echo "conda convert -p linux-64 $HOST_PACKAGE -o $out_dir"
-          conda convert -p linux-64 $HOST_PACKAGE -o $out_dir
-          echo "Package for platform linux-64 compiled"
+          if "${{ inputs.skip-failures }}"; then
+            conda convert -p linux-64 $HOST_PACKAGE -o $out_dir
+            echo "Package for platform linux-64 compiled"
+          else 
+            conda convert -p linux-64 $HOST_PACKAGE -o $out_dir || true
+            echo "Package for platform linux-64 compiled"
+          fi
         fi
         if "${{ inputs.platform_osx-64 }}"; then
           echo "conda convert -p osx-64 $HOST_PACKAGE -o $out_dir"
-          conda convert -p osx-64 $HOST_PACKAGE -o $out_dir
-          echo "Package for platform osx-64 compiled"
+          if "${{ inputs.skip-failures }}"; then
+            conda convert -p osx-64 $HOST_PACKAGE -o $out_dir || true
+            echo "Package for platform osx-64 compiled"
+          else
+            conda convert -p osx-64 $HOST_PACKAGE -o $out_dir
+            echo "Package for platform osx-64 compiled"
+          fi
         fi
         if "${{ inputs.platform_osx-arm64 }}"; then
           echo "conda convert -p osx-arm64 $HOST_PACKAGE -o $out_dir"
-          conda convert -p osx-arm64 $HOST_PACKAGE -o $out_dir
-          echo "Package for platform osx-arm64 compiled"
+          if "${{ inputs.skip-failures }}"; then
+            conda convert -p osx-arm64 $HOST_PACKAGE -o $out_dir || true
+            echo "Package for platform osx-arm64 compiled"
+          else
+            conda convert -p osx-arm64 $HOST_PACKAGE -o $out_dir
+            echo "Package for platform osx-arm64 compiled"
+          fi
         fi
         if "${{ inputs.platform_linux-32 }}"; then
           echo "conda convert -p linux-32 $HOST_PACKAGE -o $out_dir"
-          conda convert -p linux-32 $HOST_PACKAGE -o $out_dir
-          echo "Package for platform linux-32 compiled"
+          if "${{ inputs.skip-failures }}"; then
+            conda convert -p linux-32 $HOST_PACKAGE -o $out_dir || true
+            echo "Package for platform linux-32 compiled"
+          else
+            conda convert -p linux-32 $HOST_PACKAGE -o $out_dir
+            echo "Package for platform linux-32 compiled"
+          fi
         fi
         if "${{ inputs.platform_linux-ppc64 }}"; then
           echo "conda convert -p linux-ppc64 $HOST_PACKAGE -o $out_dir"
-          conda convert -p linux-ppc64 $HOST_PACKAGE -o $out_dir
-          echo "Package for platform linux-ppc64 compiled"
+          if "${{ inputs.skip-failures }}"; then
+            conda convert -p linux-ppc64 $HOST_PACKAGE -o $out_dir || true
+            echo "Package for platform linux-ppc64 compiled"
+          else
+            conda convert -p linux-ppc64 $HOST_PACKAGE -o $out_dir
+            echo "Package for platform linux-ppc64 compiled"
+          fi
         fi
         if "${{ inputs.platform_linux-ppc64le }}"; then
           echo "conda convert -p linux-ppc64le $HOST_PACKAGE -o $out_dir"
-          conda convert -p linux-ppc64le $HOST_PACKAGE -o $out_dir
-          echo "Package for platform linux-ppc64le compiled"
+          if "${{ inputs.skip-failures }}"; then
+            conda convert -p linux-ppc64le $HOST_PACKAGE -o $out_dir || true
+            echo "Package for platform linux-ppc64le compiled"
+          else
+            conda convert -p linux-ppc64le $HOST_PACKAGE -o $out_dir
+            echo "Package for platform linux-ppc64le compiled"
+          fi
         fi
         if "${{ inputs.platform_linux-s390x }}"; then
           echo "conda convert -p linux-s390x $HOST_PACKAGE -o $out_dir"
-          conda convert -p linux-s390x $HOST_PACKAGE -o $out_dir
-          echo "Package for platform linux-s390x compiled"
+          if "${{ inputs.skip-failures }}"; then
+            conda convert -p linux-s390x $HOST_PACKAGE -o $out_dir || true
+            echo "Package for platform linux-s390x compiled"
+          else
+            conda convert -p linux-s390x $HOST_PACKAGE -o $out_dir
+            echo "Package for platform linux-s390x compiled"
+          fi
         fi
         if "${{ inputs.platform_linux-armv6l }}"; then
           echo "conda convert -p linux-armv6l $HOST_PACKAGE -o $out_dir"
-          conda convert -p linux-armv6l $HOST_PACKAGE -o $out_dir
-          echo "Package for platform linux-armv6l compiled"
+          if "${{ inputs.skip-failures }}"; then
+            conda convert -p linux-armv6l $HOST_PACKAGE -o $out_dir || true
+            echo "Package for platform linux-armv6l compiled"
+          else
+            conda convert -p linux-armv6l $HOST_PACKAGE -o $out_dir
+            echo "Package for platform linux-armv6l compiled"
+          fi
         fi
         if "${{ inputs.platform_linux-armv7l }}"; then
           echo "conda convert -p linux-armv7l $HOST_PACKAGE -o $out_dir"
-          conda convert -p linux-armv7l $HOST_PACKAGE -o $out_dir
-          echo "Package for platform linux-armv7l compiled"
+          if "${{ inputs.skip-failures }}"; then
+            conda convert -p linux-armv7l $HOST_PACKAGE -o $out_dir || true
+            echo "Package for platform linux-armv7l compiled"
+          else
+            conda convert -p linux-armv7l $HOST_PACKAGE -o $out_dir
+            echo "Package for platform linux-armv7l compiled"
+          fi
         fi
         if "${{ inputs.platform_linux-aarch64 }}"; then
           echo "conda convert -p linux-aarch64 $HOST_PACKAGE -o $out_dir"
-          conda convert -p linux-aarch64 $HOST_PACKAGE -o $out_dir
-          echo "Package for platform linux-aarch64 compiled"
+          if "${{ inputs.skip-failures }}"; then
+            conda convert -p linux-aarch64 $HOST_PACKAGE -o $out_dir || true
+            echo "Package for platform linux-aarch64 compiled"
+          else
+            conda convert -p linux-aarch64 $HOST_PACKAGE -o $out_dir
+            echo "Package for platform linux-aarch64 compiled"
+          fi
         fi
         if "${{ inputs.platform_win-32 }}"; then
           echo "conda convert -p win-32 $HOST_PACKAGE -o $out_dir"
-          conda convert -p win-32 $HOST_PACKAGE -o $out_dir
-          echo "Package for platform win-32 compiled"
+          if "${{ inputs.skip-failures }}"; then
+            conda convert -p win-32 $HOST_PACKAGE -o $out_dir || true
+            echo "Package for platform win-32 compiled"
+          else
+            conda convert -p win-32 $HOST_PACKAGE -o $out_dir
+            echo "Package for platform win-32 compiled"
+          fi
         fi
         if "${{ inputs.platform_win-64 }}"; then
           echo "conda convert -p win-64 $HOST_PACKAGE -o $out_dir"
-          conda convert -p win-64 $HOST_PACKAGE -o $out_dir
-          echo "Package for platform win-64 compiled"
+          if "${{ inputs.skip-failures }}"; then
+            conda convert -p win-64 $HOST_PACKAGE -o $out_dir || true
+            echo "Package for platform win-64 compiled"
+          else
+            conda convert -p win-64 $HOST_PACKAGE -o $out_dir
+            echo "Package for platform win-64 compiled"
+          fi
         fi
         if ! "${{ inputs.platform_host }}"; then
           rm $HOST_PACKAGE
