@@ -15,10 +15,6 @@ inputs:
     description: Using boa (mambabuild) to build the packages.
     required: false
     default: false
-  skip-failures: true
-    description: Do not cancel the action if a building fails.
-    required: false
-    default: true
   platform_host:
     description: Target host plaform.
     required: false
