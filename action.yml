@@ -11,6 +11,10 @@ inputs:
   python-version:
     description: Python version of the package to be built.
     required: true
+  mambabuild:
+    description: Using boa (mambabuild) to build the packages.
+    required: false
+    default: false
   platform_host:
     description: Target host plaform.
     required: false
@@ -114,8 +118,13 @@ runs:
       run: |
         echo "::group::Building conda package for host platform"
         out_dir=`mktemp -d -t compilation-XXXXXXXXXX`
-        echo "conda build . --no-anaconda-upload --output-folder $out_dir --python ${{ inputs.python-version }}"
-        conda build . --no-anaconda-upload --output-folder $out_dir --python ${{ inputs.python-version }}
+        if "${{ inputs.mambabuild }}"; then
+          echo "conda mambabuild . --no-anaconda-upload --output-folder $out_dir --python ${{ inputs.python-version }}"
+          conda mambabuild . --no-anaconda-upload --output-folder $out_dir --python ${{ inputs.python-version }}
+        else
+          echo "conda build . --no-anaconda-upload --output-folder $out_dir --python ${{ inputs.python-version }}"
+          conda build . --no-anaconda-upload --output-folder $out_dir --python ${{ inputs.python-version }}
+        fi
         for dirname in $out_dir/*; do
           if [ -d "$dirname" ]; then
             for filename in $dirname/*; do
