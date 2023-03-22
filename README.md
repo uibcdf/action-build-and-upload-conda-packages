@@ -131,7 +131,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.7, 3.8, 3.9]
+        python-version: ["3.8", "3.9", "3.10"]
     steps:
       - uses: actions/checkout@v2
         with:
@@ -145,7 +145,7 @@ jobs:
           auto-activate-base: false
           show-channel-urls: true
       - name: Build and upload the conda packages
-        uses: uibcdf/action-build-and-upload-conda-packages@v1.1.0
+        uses: uibcdf/action-build-and-upload-conda-packages@v1.2.0
         with:
           meta_yaml_dir: devtools/conda-build
           python-version: ${{ matrix.python-version }} # Values previously defined in `matrix`
@@ -182,7 +182,7 @@ jobs:
     strategy:
       matrix:
         os: [macOS-latest, ubuntu-latest, windows-latest]
-        python-version: [3.7, 3.8, 3.9]
+        python-version: ["3.8", "3.9", "3.10"]
 
     steps:
       - uses: actions/checkout@v2
@@ -195,7 +195,7 @@ jobs:
           auto-activate-base: false
           show-channel-urls: true
       - name: Build and upload the conda packages
-        uses: uibcdf/action-build-and-upload-conda-packages@v1.1.0
+        uses: uibcdf/action-build-and-upload-conda-packages@v1.2.0
         with:
           meta_yaml_dir: devtools/conda-build
           python-version: ${{ matrix.python-version }} # Values previously defined in `matrix`
@@ -236,7 +236,7 @@ They are placed in the `with:` subsection of the step named `Build and upload th
 
 ```yaml
       - name: Build and upload the conda packages
-        uses: uibcdf/action-build-and-upload-conda-packages@v1.1.0
+        uses: uibcdf/action-build-and-upload-conda-packages@v1.2.0
         with:
           meta_yaml_dir: devtools/conda-build
           python-version: ${{ matrix.python-version }} # Values previously defined in `matrix`
@@ -259,7 +259,7 @@ parameter of [the workflow](#How-to-use-it) named `strategy: matrix: python-vers
 ```yaml
     strategy:
       matrix:
-        python-version: [3.7, 3.8, 3.9]
+        python-version: ["3.8", "3.9", "3.10"]
 ```
 
 No matter the python version found in the 'meta.yaml' file, this action will make all the work to
