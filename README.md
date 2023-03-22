@@ -133,7 +133,7 @@ jobs:
       matrix:
         python-version: ["3.8", "3.9", "3.10"]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
       - name: Conda environment creation and activation
@@ -185,7 +185,7 @@ jobs:
         python-version: ["3.8", "3.9", "3.10"]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Conda environment creation and activation
         uses: conda-incubator/setup-miniconda@v2
         with:
