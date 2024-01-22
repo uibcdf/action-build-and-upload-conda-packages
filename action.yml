@@ -71,6 +71,10 @@ inputs:
     description: Target platform win-32.
     required: false
     default: false
+  upload:
+    description: Upload built package to anaconda
+    required: false
+    default: true
   overwrite:
     description: Do not cancel the uploading if a package with the same name is found already in Anaconda.
     required: false
@@ -211,6 +215,7 @@ runs:
         echo "::endgroup::"
     - name: Packages uploading
       id: packages-uploading
+      if: ${{ inputs.upload }} == true
       shell: bash -l {0}
       working-directory: ./${{ inputs.meta_yaml_dir }}
       run: |
