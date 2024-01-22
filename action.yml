@@ -215,7 +215,7 @@ runs:
         echo "::endgroup::"
     - name: Packages uploading
       id: packages-uploading
-      if: ${{ inputs.upload }} == true
+      if: inputs.upload == 'true'
       shell: bash -l {0}
       working-directory: ./${{ inputs.meta_yaml_dir }}
       run: |
