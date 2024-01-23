@@ -145,7 +145,7 @@ jobs:
           auto-activate-base: false
           show-channel-urls: true
       - name: Build and upload the conda packages
-        uses: uibcdf/action-build-and-upload-conda-packages@v1.2.0
+        uses: uibcdf/action-build-and-upload-conda-packages@v1.3.0
         with:
           meta_yaml_dir: devtools/conda-build
           python-version: ${{ matrix.python-version }} # Values previously defined in `matrix`
@@ -195,7 +195,7 @@ jobs:
           auto-activate-base: false
           show-channel-urls: true
       - name: Build and upload the conda packages
-        uses: uibcdf/action-build-and-upload-conda-packages@v1.2.0
+        uses: uibcdf/action-build-and-upload-conda-packages@v1.3.0
         with:
           meta_yaml_dir: devtools/conda-build
           python-version: ${{ matrix.python-version }} # Values previously defined in `matrix`
@@ -237,7 +237,7 @@ They are placed in the `with:` subsection of the step named `Build and upload th
 
 ```yaml
       - name: Build and upload the conda packages
-        uses: uibcdf/action-build-and-upload-conda-packages@v1.2.0
+        uses: uibcdf/action-build-and-upload-conda-packages@v1.3.0
         with:
           meta_yaml_dir: devtools/conda-build
           python-version: ${{ matrix.python-version }} # Values previously defined in `matrix`
@@ -308,7 +308,7 @@ jobs:
           auto-activate-base: false
           show-channel-urls: true
       - name: Build but do not upload the conda packages
-        uses: uibcdf/action-build-and-upload-conda-packages@v1.2.0
+        uses: uibcdf/action-build-and-upload-conda-packages@v1.3.0
         with:
           meta_yaml_dir: devtools/conda-build
           python-version: ${{ matrix.python-version }} # Values previously defined in `matrix`
