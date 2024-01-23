@@ -227,6 +227,7 @@ These are the input parameters of the action:
 | platform\_linux-aarch64 | Build a package for the platform: linux-aarch64 | No | False |
 | platform\_win-32 | Build a package for the platform: linux-win-32 | No | False |
 | platform\_win-64 | Build a package for the platform: linux-win-64 | No | False |
+| upload | Upload the built package to Anaconda. Setting to False is useful to test build correctness in CI | No | True |
 | overwrite |  Do not cancel the uploading if a package with the same name is found already in Anaconda | No | False |
 | user | User or organization name to upload packages to on anaconda.org | True |  |
 | label | Name of the label to upload the package ('main', 'dev', ...). If the value is equal to 'auto', the action will automatically label releases as 'main' and prereleases as 'dev' | True | auto |
@@ -264,6 +265,61 @@ parameter of [the workflow](#How-to-use-it) named `strategy: matrix: python-vers
 
 No matter the python version found in the 'meta.yaml' file, this action will make all the work to
 convert the building instructions to the python versions you specify in your GitHub workflow.
+
+### Testing build correctness
+
+Typically this workflow is called in a deployment step, e.g. after a pull-request has succeeded and a new tag is added to the repository, or when a release is created. This means deployment generally occurs without checking if any errors to the build process were introduced in a pull request or code change.
+
+To address this the `upload` option is provided. Setting `upload: false` will run all the steps in the workflow except uploading to Anaconda, and this can be done in a CI workflow to test build correctness, and catch errors during the pull-request process.
+
+For example, this is an equivalent CI workflow for the deployment workflow above:
+
+```yaml
+name: Test Build of conda packages
+
+# Controls when the action will run.
+on:
+  # Triggers the workflow on push or pull request events but only for the main branch
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  conda_deployment_with_new_tag:
+    name: Test conda deployment of package with Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10"]
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Conda environment creation and activation
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+          environment-file: devtools/conda-envs/build_env.yaml    # Path to the build conda environment
+          auto-update-conda: false
+          auto-activate-base: false
+          show-channel-urls: true
+      - name: Build but do not upload the conda packages
+        uses: uibcdf/action-build-and-upload-conda-packages@v1.2.0
+        with:
+          meta_yaml_dir: devtools/conda-build
+          python-version: ${{ matrix.python-version }} # Values previously defined in `matrix`
+          platform_linux-64: true
+          platform_osx-64: true
+          platform_win-64: true
+          user: uibcdf
+          label: auto
+          upload: false
+          token: ${{ secrets.ANACONDA_TOKEN }} # Replace with the right name of your secret
+```
 
 ## Other tools like this one
 
