@@ -90,7 +90,11 @@ inputs:
     description: Token to access to anaconda cloud.
     required: false
     default: ''
- 
+outputs:
+  packages-paths:
+    description: Paths for the built packages, in the format 'path1 path2 ... pathN'.
+    value: ${{steps.packages-uploading.outputs.paths}}
+
 runs:
   using: "composite"
   steps:
@@ -244,9 +248,11 @@ runs:
               if [ "${filename: -8}" == ".tar.bz2" ]; then
                 echo "anaconda upload --user ${{ inputs.user }} $force --label $label $filename"
                 anaconda upload --user ${{ inputs.user }} $force --label $label $filename
+                paths+=($filename)
               fi
             done
           fi
-        done 
+        done
+        echo "name=${paths[@]}" >> $GITHUB_OUTPUT 
         echo "::endgroup::"
 
