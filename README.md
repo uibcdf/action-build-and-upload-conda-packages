@@ -10,8 +10,8 @@ In summary, this GitHub Action does the following:
 - It is suggested that the action is triggered by a release or a prerelease publication.
 - The action checks if the meta.yaml file exists in the directory specified by the user.
 - It compiles then the list of packages to the platform and Python version specified by the user.
-- Finally, the action uploads all packages built to the Anaconda user or organization specified by the user, with the label
-  specified by the user (the option `auto` sets the value of the label as 'main' for releases and 'dev' to prereleases).
+- Finally, the action uploads all packages built to the Anaconda user or organization specified by the user, with the label specified by the user (the option `auto` sets the value of the label as 'main' for releases and 'dev' to prereleases).
+- The paths of the built packages are preserved as an [output](#outputs), to be passed to later jobs.
 
 This GitHub Action was developed by [the Computational Biology and Drug Design Research Unit -UIBCDF- at the
 Mexico City Children's Hospital Federico Gómez](https://www.uibcdf.org/). Other GitHub Actions can
@@ -265,6 +265,13 @@ parameter of [the workflow](#How-to-use-it) named `strategy: matrix: python-vers
 
 No matter the python version found in the 'meta.yaml' file, this action will make all the work to
 convert the building instructions to the python versions you specify in your GitHub workflow.
+
+### Outputs
+| Outputs | Description | 
+| --- | --- |
+| paths | Paths for the built packages, in the format `path1 path2 ... pathN`. |
+
+The output paths can be useful for later jobs, for example to make a release with the built packages as artifacs.
 
 ### Testing build correctness
 

@@ -91,7 +91,7 @@ inputs:
     required: false
     default: ''
 outputs:
-  packages-paths:
+  paths:
     description: Paths for the built packages, in the format 'path1 path2 ... pathN'.
     value: ${{steps.packages-uploading.outputs.paths}}
 
@@ -253,6 +253,6 @@ runs:
             done
           fi
         done
-        echo "name=${paths[@]}" >> $GITHUB_OUTPUT 
+        echo "paths=${paths[@]}" >> $GITHUB_OUTPUT 
         echo "::endgroup::"
 
