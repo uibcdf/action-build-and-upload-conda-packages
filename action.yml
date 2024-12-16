@@ -133,15 +133,7 @@ runs:
           echo "conda build . --no-anaconda-upload --output-folder $out_dir --python ${{ inputs.python-version }}"
           conda build . --no-anaconda-upload --output-folder $out_dir --python ${{ inputs.python-version }}
         fi
-        for dirname in $out_dir/*; do
-          if [ -d "$dirname" ]; then
-            for filename in $dirname/*; do
-              if [ "${filename: -8}" == ".tar.bz2" ]; then
-                HOST_PACKAGE=$filename
-              fi
-            done
-          fi
-        done
+        HOST_PACKAGE=$(find $out_dir -type f -name *.tar.bz2)
         echo "Package for host platform compiled as $HOST_PACKAGE"
         du -sh $HOST_PACKAGE
         echo "::endgroup::"
