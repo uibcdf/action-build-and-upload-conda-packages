@@ -90,7 +90,11 @@ inputs:
     description: Token to access to anaconda cloud.
     required: false
     default: ''
- 
+outputs:
+  paths:
+    description: Paths for the built packages, in the format 'path1 path2 ... pathN'.
+    value: ${{steps.packages-uploading.outputs.paths}}
+
 runs:
   using: "composite"
   steps:
@@ -230,10 +234,17 @@ runs:
         fi
         export ANACONDA_API_TOKEN=${{ inputs.token }}
         SHORT_SHA="$(git rev-parse --short $GITHUB_SHA)"
-        filenames=$(find ${{ steps.packages-compilation.outputs.out_dir }} -type f -name *.tar.bz2)
-        for filename in $filenames; do
-            echo "anaconda upload --user ${{ inputs.user }} $force --label $label $filename"
-            anaconda upload --user ${{ inputs.user }} $force --label $label $filename
+        for dirname in ${{ steps.packages-compilation.outputs.out_dir }}/*; do
+          if [ -d "$dirname" ]; then
+            for filename in $dirname/*; do
+              if [ "${filename: -8}" == ".tar.bz2" ]; then
+                echo "anaconda upload --user ${{ inputs.user }} $force --label $label $filename"
+                anaconda upload --user ${{ inputs.user }} $force --label $label $filename
+                paths+=($filename)
+              fi
+            done
+          fi
         done
+        echo "paths=${paths[@]}" >> $GITHUB_OUTPUT 
         echo "::endgroup::"
 
