@@ -98,6 +98,16 @@ outputs:
 runs:
   using: "composite"
   steps:
+    - name: Sanity checks on inputs
+      shell: bash
+      run: |
+        echo "::group::Sanity checks on inputs"
+        if [ "${{ inputs.upload }}" == "true" ] && [ "${{ inputs.token }}" == "" ]; then
+           echo -e "An Anaconda token is required when the package is to be uploaded.\n"\
+                    "Please specify a 'token', or set 'upload' to 'false'."
+           exit 1
+        fi
+        echo "::endgroup::"
     - name: Event trigger data
       shell: bash
       run: |
