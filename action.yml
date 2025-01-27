@@ -78,7 +78,7 @@ inputs:
   overwrite:
     description: Do not cancel the uploading if a package with the same name is found already in Anaconda.
     required: false
-    default: false
+    default: ''
   user:
     description: Name of the Anaconda user or organization where the conda package will be published.
     required: false
@@ -86,7 +86,7 @@ inputs:
   label:
     description: Label of the published conda package.
     required: false
-    default: main
+    default: ''
   token:
     description: Token to access to anaconda cloud.
     required: false
@@ -126,6 +126,45 @@ runs:
             exit 1
           fi
         fi
+        if ${{ contains(inputs.conda_build_args, '--no-anaconda-upload') }}; then
+            echo -e "The argument '--no-anaconda-upload' is already used within this action's 'conda build' command and is not allowed in 'conda_build_args'."
+            exit 1
+        fi
+        if ${{ contains(inputs.conda_build_args, '--output-folder') }}; then
+            echo -e "The destination folder for the built packages is set internally and the '--output-folder' option is not allowed in 'conda_build_args'.\n"
+                "To retrieve the paths of the built packages, please refer to this action's 'paths' output."
+            exit 1
+        fi
+        if ${{ contains(inputs.conda_build_args, '--python') }}; then
+            echo -e "The '--python' option is not allowed in 'conda_build_args'.\n"\
+                "To build packages for a specific python version, please use this action's 'python-version' input instead."
+            exit 1
+        fi
+        if ${{ contains(inputs.conda_convert_args, '--output-folder') }}; then
+            echo -e "The destination folder for the converted packages is set internally and the '--output-folder' option is not allowed in 'conda_convert_args'.\n"
+                "To retrieve the paths of the built packages, please refer to this action's 'paths' output."
+            exit 1
+        fi
+        if (${{ contains(inputs.anaconda_upload_args, '--label') }} || ${{ contains(inputs.anaconda_upload_args, '-l') }}) && [ -n "${{ inputs.label }}" ]; then
+            echo -e "Both the 'label' input and the '--label'/'-l' option within 'anaconda_upload_args' were specified.\n"\
+                "Please only use one of them."
+            exit 1
+        fi
+        if (${{ contains(inputs.anaconda_upload_args, '--user') }} || ${{ contains(inputs.anaconda_upload_args, '-u') }}) && [ -n "${{ inputs.user }}" ]; then
+            echo -e "Both the 'user' input and the '--user'/'-u' option within 'anaconda_upload_args' were specified.\n"\
+                "Please only use one of them."
+            exit 1
+        fi
+        if ${{ contains(inputs.anaconda_upload_args, '--token') }} && [ -n "${{ inputs.token }}" ]; then
+            echo -e "Both the 'token' input and the '--token' option within 'anaconda_upload_args' were specified.\n"\
+                "Please only use one of them."
+            exit 1
+        fi
+        if ${{ contains(inputs.anaconda_upload_args, '--force') }} && [ -n "${{ inputs.overwrite }}" ]; then
+            echo -e "Both the 'overwrite' input and the '--force' option within 'anaconda_upload_args' were specified.\n"\
+                "Please only use one of them."
+            exit 1
+        fi
         echo "::endgroup::"
     - name: Event trigger data
       shell: bash
@@ -160,10 +199,10 @@ runs:
         else
           build_function="build"
         fi
-        build_command="conda $build_function . --no-anaconda-upload --output-folder $out_dir --python ${{ inputs.python-version }} ${ inputs.conda_build_args }"
-        echo "$build_command"
-        eval "$build_command"
-        HOST_PACKAGE=$(eval "$build_command --output")
+        conda_build_command="conda $build_function . --no-anaconda-upload --output-folder $out_dir --python ${{ inputs.python-version }} ${ inputs.conda_build_args }"
+        echo "$conda_build_command"
+        eval "$conda_build_command"
+        HOST_PACKAGE=$(eval "$conda_build_command --output")
         echo "Package for host platform compiled as $HOST_PACKAGE"
         du -sh $HOST_PACKAGE
         echo "::endgroup::"
@@ -225,9 +264,9 @@ runs:
       run: |
         echo "::group::Conda packages uploading"
         label=${{ inputs.label }}
-        force=""
-        if "${{ inputs.overwrite }}"; then
-          force="--force"
+        label=${label:-main} #If label is empty (input not provided), set it to 'main'
+        if [[ "${{ inputs.overwrite }}" == true ]]; then
+          force=--force
         fi
         export ANACONDA_API_TOKEN=${{ inputs.token }}
         SHORT_SHA="$(git rev-parse --short $GITHUB_SHA)"
