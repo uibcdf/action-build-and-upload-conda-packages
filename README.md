@@ -166,7 +166,7 @@ jobs:
           token: ${{ secrets.ANACONDA_TOKEN }} # Replace with the right name of your secret
 ```
 
-#### Host platform package and conversion to other platforms
+### Host platform package and conversion to other platforms
 
 When the package is built from a pure Python library, [`conda convert` can produce packages for a
 long list of platforms](https://docs.conda.io/projects/conda-build/en/latest/user-guide/tutorials/build-pkgs-skeleton.html?highlight=platform#optional-converting-conda-package-for-other-platforms). Instead, if you have to build a package that contains compiled code, `conda
@@ -226,12 +226,95 @@ jobs:
 > [!NOTE]
 > In this case, is likely that your `meta.yaml` file need [preprocessing selectors](https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#preprocessing-selectors) to differenciate the build among the different platforms.
 
+### Additional command line arguments
+This action, internally, calls the following commands:
+- [`conda build`](https://docs.conda.io/projects/conda-build/en/stable/resources/commands/conda-build.html) (or `conda mambabuild`, if `mambabuild` is set to `true`)
+- [`conda convert`](https://docs.conda.io/projects/conda-build/en/stable/resources/commands/conda-convert.html) (if any platform conversion is specified)
+- [`anaconda upload`](https://docs.anaconda.com/anaconda-repository/commandreference/#upload) (if `upload` is set to `true`)
+
+The above commands have multiple command-line arguments that can be passed, for each of the respective command, by using the `conda_build_args`, `conda_convert_args` and `anaconda_upload_args` input parameters.
+
+For example, the `build_and_upload_conda_packages.yaml` file below builds a package with the `--override-chanels` and `--channel my_channel` `conda build` options, to avoid searching for a default or `.condarc` channel, but only looking at the specified channel. Furthermore, it also passes the `--show-imports` argument to the `conda convert` command, to show Python imports for the compiled parts of the package.
+
+```yaml
+
+name: Build and upload conda packages
+
+on:
+  release:
+    types: [released, prereleased]
+# workflow_dispatch:        # Un-comment line if you also want to trigger action manually
+
+jobs:
+  conda_deployment_with_new_tag:
+    name: Conda deployment of package with Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.9, 3.10, 3.11]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Conda environment creation and activation
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          python-version: ${{ matrix.python-version }}
+          environment-file: path/to/build/env.yaml    # Path to the build conda environment
+          auto-update-conda: false
+          auto-activate-base: false
+          show-channel-urls: true
+      - name: Set label
+        id: set-label
+        shell: bash
+        run: |
+          if [[ "${{ github.event.action }}" == "prereleased" ]]; then
+            label=dev
+          else
+            label=main
+          echo "label=$label" >> $GITHUB_OUTPUT
+      - name: Build and upload the conda packages
+        uses: uibcdf/action-build-and-upload-conda-packages@v1.4.0
+        with:
+          meta_yaml_dir: path/to/meta_yaml/directory
+          python-version: ${{ matrix.python-version }} # Values previously defined in `matrix`
+          platform_linux-64: true
+          platform_osx-64: true
+          platform_win-64: true
+          label: ${{ steps.set-label.outputs.label }}
+          user: uibcdf # Replace with the right user
+          token: ${{ secrets.ANACONDA_TOKEN }} # Replace with the right name of your secret
+          conda_build_args: --override-chanels --channel my_channel
+          conda_convert_args: --show-imports
+```
+
+> [!WARNING]
+> Some command line arguments in `conda_build_args`, `conda_convert_args` or `anaconda_upload_args` cannot be declared, as they are already used internally by the action, or if they clash with specific input parameters:
+> **`conda_build_args`**
+> - `--output-folder`
+> - `--no-anaconda-upload`
+> - `--python`
+> 
+> **`conda_convert_args`**
+> - `--output-folder`
+> 
+> **`anaconda_upload_args`**
+> - `--label`/`-l` together with `label` input
+> - `--user`/`-u` together with `user` input
+> - `--force` together with `overwrite` input
+
 ### Input parameters
 
 | Name | Description | Required/Optional | Default value |
 | ---------------- | ----------- | -------- | ------------- |
 | `meta_yaml_dir` | Path to the directory where the `meta.yaml` file with building instructions is located | Required | |
 | `python-version` | Python version of the built packages | Required | |
+| `upload` | Upload the built package to Anaconda. Setting to false is useful to test build correctness in CI | Optional | true |
+| `overwrite` |  Do not cancel the uploading if a package with the same name is found already in Anaconda | Optional | false |
+| `mambabuild` | Uses [boa (mambabuild)](https://boa-build.readthedocs.io/en/stable/mambabuild.html) to build the packages. | Optional | false |
+| `user` | Name of the Anaconda.org channel to upload the package to | Optional | |
+| `token` | Anaconda token for the package uploading (more info [here](#Anaconda-token-as-GitHub-secret)) | Optional |  |
+| `label` | Label for the uploaded package (`main`, `dev`, ...) | Optional | main |
 | `platform_host` | Build packages for the host platform | Optional | true |
 | `platform_all` | Build packages for all supported platforms | Optional | false |
 | `platform_linux-64` | Build a package for the platform: linux-64 | Optional | false |
@@ -246,11 +329,9 @@ jobs:
 | `platform_linux-aarch64` | Build a package for the platform: linux-aarch64 | Optional | false |
 | `platform_win-32` | Build a package for the platform: linux-win-32 | Optional | false |
 | `platform_win-64` | Build a package for the platform: linux-win-64 | Optional | false |
-| `upload` | Upload the built package to Anaconda. Setting to false is useful to test build correctness in CI | Optional | true |
-| `overwrite` |  Do not cancel the uploading if a package with the same name is found already in Anaconda | Optional | false |
-| `user` | Name of the Anaconda.org channel to upload the package to | Optional | |
-| `token` | Anaconda token for the package uploading (more info [here](#Anaconda-token-as-GitHub-secret)) | Optional |  |
-| `label` | Label for the uploaded package (`main`, `dev`, ...) | Optional | main |
+| `conda_build_args` | Command line arguments to pass to the `conda build` command. | Optional |  |
+| `conda_convert_args` | Command line arguments to pass to the `conda convert` command. | Optional |  |
+| `anaconda_upload_args` | Command line arguments to pass to the `anaconda upload` command. | Optional |  |
 
 They are placed in the `with:` subsection of the step where the `uibcdf/action-build-and-upload-conda-packages` action is used:
 
@@ -273,8 +354,7 @@ At this point, you can probably wonder: but the python version of the package is
 
 #### `python_version`
 
-To define the python versions of the packages created by the GitHub Action you should use the input
-parameter of [the workflow](#How-to-use-it) named `strategy: matrix: python-version`.
+To define the python versions of the packages created by the GitHub Action you should use the input parameter of [the workflow](#How-to-use-it) named `strategy: matrix: python-version`.
 
 ```yaml
     strategy:
