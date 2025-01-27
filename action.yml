@@ -91,6 +91,18 @@ inputs:
     description: Token to access to anaconda cloud.
     required: false
     default: ''
+  conda_build_args:
+    description: Optional arguments to pass to the 'conda build' command.
+    required: false
+    default: ''
+  conda_convert_args:
+    description: Optional arguments to pass to the 'conda convert' command.
+    required: false
+    default: ''
+  anaconda_upload_args:
+    description: Optional arguments to pass to the 'anaconda upload' command.
+    required: false
+    default: ''
 outputs:
   paths:
     description: Paths for the built packages, in the format 'path1 path2 ... pathN'.
@@ -142,89 +154,68 @@ runs:
       run: |
         echo "::group::Building conda package for host platform"
         out_dir=`mktemp -d -t compilation-XXXXXXXXXX`
+        echo "out_dir=$out_dir" >> $GITHUB_OUTPUT
         if "${{ inputs.mambabuild }}"; then
           build_function="mambabuild"
         else
           build_function="build"
         fi
-        build_command="conda $build_function . --no-anaconda-upload --output-folder $out_dir --python ${{ inputs.python-version }}"
+        build_command="conda $build_function . --no-anaconda-upload --output-folder $out_dir --python ${{ inputs.python-version }} ${ inputs.conda_build_args }"
         echo "$build_command"
         eval "$build_command"
         HOST_PACKAGE=$(eval "$build_command --output")
         echo "Package for host platform compiled as $HOST_PACKAGE"
         du -sh $HOST_PACKAGE
         echo "::endgroup::"
-        echo "::group::Building conda package for other platforms"
+        echo "::group::Converting package for other platforms"
+        conda_convert_command="conda convert $HOST_PACKAGE -o $out_dir ${ inputs.conda_convert_args }"
         if "${{ inputs.platform_all }}"; then
-          echo "conda convert -p all $HOST_PACKAGE -o $out_dir"
-          conda convert -p all $HOST_PACKAGE -o $out_dir
-          echo "Package for all platforms compiled"
+          platforms_options+=" -p all"
         fi
         if "${{ inputs.platform_linux-64 }}"; then
-          echo "conda convert -p linux-64 $HOST_PACKAGE -o $out_dir"
-          conda convert -p linux-64 $HOST_PACKAGE -o $out_dir
-          echo "Package for platform linux-64 compiled"
-        fi
-        if "${{ inputs.platform_osx-64 }}"; then
-          echo "conda convert -p osx-64 $HOST_PACKAGE -o $out_dir"
-          conda convert -p osx-64 $HOST_PACKAGE -o $out_dir
-          echo "Package for platform osx-64 compiled"
-        fi
-        if "${{ inputs.platform_osx-arm64 }}"; then
-          echo "conda convert -p osx-arm64 $HOST_PACKAGE -o $out_dir"
-          conda convert -p osx-arm64 $HOST_PACKAGE -o $out_dir
-          echo "Package for platform osx-arm64 compiled"
+          platforms_options+=" -p linux-64"
         fi
         if "${{ inputs.platform_linux-32 }}"; then
-          echo "conda convert -p linux-32 $HOST_PACKAGE -o $out_dir"
-          conda convert -p linux-32 $HOST_PACKAGE -o $out_dir
-          echo "Package for platform linux-32 compiled"
+          platforms_options+=" -p linux-32"
+        fi
+        if "${{ inputs.platform_osx-64 }}"; then
+          platforms_options+=" -p osx-64"
+        fi
+        if "${{ inputs.platform_osx-arm64 }}"; then
+          platforms_options+=" -p osx-arm64"
         fi
         if "${{ inputs.platform_linux-ppc64 }}"; then
-          echo "conda convert -p linux-ppc64 $HOST_PACKAGE -o $out_dir"
-          conda convert -p linux-ppc64 $HOST_PACKAGE -o $out_dir
-          echo "Package for platform linux-ppc64 compiled"
+          platforms_options+=" -p linux-ppc64"
         fi
         if "${{ inputs.platform_linux-ppc64le }}"; then
-          echo "conda convert -p linux-ppc64le $HOST_PACKAGE -o $out_dir"
-          conda convert -p linux-ppc64le $HOST_PACKAGE -o $out_dir
-          echo "Package for platform linux-ppc64le compiled"
+          platforms_options+=" -p linux-ppc64le"
         fi
         if "${{ inputs.platform_linux-s390x }}"; then
-          echo "conda convert -p linux-s390x $HOST_PACKAGE -o $out_dir"
-          conda convert -p linux-s390x $HOST_PACKAGE -o $out_dir
-          echo "Package for platform linux-s390x compiled"
+          platforms_options+=" -p linux-s390x"
         fi
         if "${{ inputs.platform_linux-armv6l }}"; then
-          echo "conda convert -p linux-armv6l $HOST_PACKAGE -o $out_dir"
-          conda convert -p linux-armv6l $HOST_PACKAGE -o $out_dir
-          echo "Package for platform linux-armv6l compiled"
+          platforms_options+=" -p linux-armv6l"
         fi
         if "${{ inputs.platform_linux-armv7l }}"; then
-          echo "conda convert -p linux-armv7l $HOST_PACKAGE -o $out_dir"
-          conda convert -p linux-armv7l $HOST_PACKAGE -o $out_dir
-          echo "Package for platform linux-armv7l compiled"
+          platforms_options+=" -p linux-armv7l"
         fi
         if "${{ inputs.platform_linux-aarch64 }}"; then
-          echo "conda convert -p linux-aarch64 $HOST_PACKAGE -o $out_dir"
-          conda convert -p linux-aarch64 $HOST_PACKAGE -o $out_dir
-          echo "Package for platform linux-aarch64 compiled"
+          platforms_options+=" -p linux-aarch64"
         fi
         if "${{ inputs.platform_win-32 }}"; then
-          echo "conda convert -p win-32 $HOST_PACKAGE -o $out_dir"
-          conda convert -p win-32 $HOST_PACKAGE -o $out_dir
-          echo "Package for platform win-32 compiled"
+          platforms_options+=" -p win-32"
         fi
         if "${{ inputs.platform_win-64 }}"; then
-          echo "conda convert -p win-64 $HOST_PACKAGE -o $out_dir"
-          conda convert -p win-64 $HOST_PACKAGE -o $out_dir
-          echo "Package for platform win-64 compiled"
+          platforms_options+=" -p win-64"
+        fi
+        if [ -n "$platforms_options" ]; then
+            echo "${conda_convert_command}${platforms_options}"
+            eval "${conda_convert_command}${platforms_options}"
         fi
         if ! "${{ inputs.platform_host }}"; then
           rm $HOST_PACKAGE
-          echo "Package for host platform removed"
+          echo "Package for host platform removed."
         fi
-        echo "::set-output name=out_dir::'$out_dir'"
         echo "::endgroup::"
     - name: Packages uploading
       id: packages-uploading
@@ -242,7 +233,7 @@ runs:
         SHORT_SHA="$(git rev-parse --short $GITHUB_SHA)"
         package_paths=$(find ${{ steps.packages-compilation.outputs.out_dir }} -type f -name $(basename $HOST_PACKAGE))
         for package_path in $package_paths; do
-          command="anaconda upload --user ${{ inputs.user }} $force --label $label $package_path"
+          command="anaconda upload --user ${{ inputs.user }} $force --label $label ${{ inputs.anaconda_upload_args }} $package_path"
           echo "$command"
           eval "$command"
           paths+=($package_path)
