@@ -232,7 +232,6 @@ jobs:
 | ---------------- | ----------- | -------- | ------------- |
 | `meta_yaml_dir` | Path to the directory where the `meta.yaml` file with building instructions is located | Required | |
 | `python-version` | Python version of the built packages | Required | |
-| `token` | Anaconda token for the package uploading (more info [here](#Anaconda-token-as-GitHub-secret)) | Required |  |
 | `platform_host` | Build packages for the host platform | Optional | true |
 | `platform_all` | Build packages for all supported platforms | Optional | false |
 | `platform_linux-64` | Build a package for the platform: linux-64 | Optional | false |
@@ -250,6 +249,7 @@ jobs:
 | `upload` | Upload the built package to Anaconda. Setting to false is useful to test build correctness in CI | Optional | true |
 | `overwrite` |  Do not cancel the uploading if a package with the same name is found already in Anaconda | Optional | false |
 | `user` | Name of the Anaconda.org channel to upload the package to | Optional | |
+| `token` | Anaconda token for the package uploading (more info [here](#Anaconda-token-as-GitHub-secret)) | Optional |  |
 | `label` | Label for the uploaded package (`main`, `dev`, ...) | Optional | main |
 
 They are placed in the `with:` subsection of the step where the `uibcdf/action-build-and-upload-conda-packages` action is used:
@@ -342,7 +342,6 @@ jobs:
           platform_osx-64: true
           platform_win-64: true
           upload: false
-          token: ${{ secrets.ANACONDA_TOKEN }} # Replace with the right name of your secret
 ```
 
 ## Other tools like this one
