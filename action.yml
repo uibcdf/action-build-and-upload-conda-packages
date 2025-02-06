@@ -82,7 +82,7 @@ inputs:
   user:
     description: Name of the Anaconda user or organization where the conda package will be published.
     required: false
-    dedault: ''
+    default: ''
   label:
     description: Label of the published conda package.
     required: false
