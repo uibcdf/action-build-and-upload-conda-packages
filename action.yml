@@ -83,9 +83,9 @@ inputs:
     description: Name of the Anaconda user or organization where the conda package will be published.
     required: true
   label:
-    description: Label of conda package published.
+    description: Label of the published conda package.
     required: false
-    default: auto
+    default: main
   token:
     description: Token to access to anaconda cloud.
     required: false
@@ -98,18 +98,17 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: Getting release data
-      id: getting-release-data
+    - name: Event trigger data
       shell: bash
       run: |
-        echo "::group::Information of the trigger event"
-        echo "Trigger event and type: $GITHUB_EVENT_NAME, ${{github.event.action}}"
-        echo "Associated commit SHA and tag: $GITHUB_SHA, $GITHUB_REF"
+        echo "::group::Information about the trigger event"
+        echo "Trigger event: $GITHUB_EVENT_NAME"
+        echo "Associated commit SHA: $GITHUB_SHA"
         echo "::endgroup::"
     - name: Checking if meta.yaml is in meta_yaml_dir
       id: checking-meta_yaml
       shell: bash
-      working-directory: ./${{ inputs.meta_yaml_dir }}
+      working-directory: ${{ inputs.meta_yaml_dir }}
       run: |
         echo "::group::Checking if the file meta.yaml exists"
         if [ ! -f meta.yaml ]; then
@@ -122,7 +121,7 @@ runs:
     - name: Packages compilation
       id: packages-compilation
       shell: bash -l {0}
-      working-directory: ./${{ inputs.meta_yaml_dir }}
+      working-directory: ${{ inputs.meta_yaml_dir }}
       run: |
         echo "::group::Building conda package for host platform"
         out_dir=`mktemp -d -t compilation-XXXXXXXXXX`
@@ -214,24 +213,13 @@ runs:
       id: packages-uploading
       if: inputs.upload == 'true'
       shell: bash -l {0}
-      working-directory: ./${{ inputs.meta_yaml_dir }}
+      working-directory: ${{ inputs.meta_yaml_dir }}
       run: |
         echo "::group::Conda packages uploading"
-        #cd ${{ steps.packages-compilation.outputs.out_dir }}
         label=${{ inputs.label }}
         force=""
         if "${{ inputs.overwrite }}"; then
           force="--force"
-        fi
-        if [ "$label" == "auto" ]; then
-          if [ "${{github.event.action}}" == "released" ]; then
-             label="main"
-          elif [ "${{github.event.action}}" == "prereleased" ]; then
-             label="dev"
-          else
-             echo "The trigger type ${{github.event.action}} is not compatible with `label: auto`"
-             exit 1
-          fi
         fi
         export ANACONDA_API_TOKEN=${{ inputs.token }}
         SHORT_SHA="$(git rev-parse --short $GITHUB_SHA)"
