@@ -127,13 +127,14 @@ runs:
         echo "::group::Building conda package for host platform"
         out_dir=`mktemp -d -t compilation-XXXXXXXXXX`
         if "${{ inputs.mambabuild }}"; then
-          echo "conda mambabuild . --no-anaconda-upload --output-folder $out_dir --python ${{ inputs.python-version }}"
-          conda mambabuild . --no-anaconda-upload --output-folder $out_dir --python ${{ inputs.python-version }}
+          build_function="mambabuild"
         else
-          echo "conda build . --no-anaconda-upload --output-folder $out_dir --python ${{ inputs.python-version }}"
-          conda build . --no-anaconda-upload --output-folder $out_dir --python ${{ inputs.python-version }}
+          build_function="build"
         fi
-        HOST_PACKAGE=$(find $out_dir -type f -name *.tar.bz2)
+        build_command="conda $build_function . --no-anaconda-upload --output-folder $out_dir --python ${{ inputs.python-version }}"
+        echo "$build_command"
+        eval "$build_command"
+        HOST_PACKAGE=$(eval "$build_command --output")
         echo "Package for host platform compiled as $HOST_PACKAGE"
         du -sh $HOST_PACKAGE
         echo "::endgroup::"
@@ -234,16 +235,12 @@ runs:
         fi
         export ANACONDA_API_TOKEN=${{ inputs.token }}
         SHORT_SHA="$(git rev-parse --short $GITHUB_SHA)"
-        for dirname in ${{ steps.packages-compilation.outputs.out_dir }}/*; do
-          if [ -d "$dirname" ]; then
-            for filename in $dirname/*; do
-              if [ "${filename: -8}" == ".tar.bz2" ]; then
-                echo "anaconda upload --user ${{ inputs.user }} $force --label $label $filename"
-                anaconda upload --user ${{ inputs.user }} $force --label $label $filename
-                paths+=($filename)
-              fi
-            done
-          fi
+        package_paths=$(find ${{ steps.packages-compilation.outputs.out_dir }} -type f -name $(basename $HOST_PACKAGE))
+        for package_path in $package_paths; do
+          command="anaconda upload --user ${{ inputs.user }} $force --label $label $package_path"
+          echo "$command"
+          eval "$command"
+          paths+=($package_path)
         done
         echo "paths=${paths[@]}" >> $GITHUB_OUTPUT 
         echo "::endgroup::"
