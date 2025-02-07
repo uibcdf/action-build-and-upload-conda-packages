@@ -8,9 +8,6 @@ inputs:
   meta_yaml_dir:
     description: Path to the directory in the repository where the meta.yaml file is located.
     required: true
-  python-version:
-    description: Python version of the package to be built.
-    required: true
   mambabuild:
     description: Using boa (mambabuild) to build the packages.
     required: false
@@ -136,11 +133,6 @@ runs:
                 "To retrieve the paths of the built packages, please refer to this action's 'paths' output."
             exit 1
         fi
-        if ${{ contains(inputs.conda_build_args, '--python') }}; then
-            echo -e "The '--python' option is not allowed in 'conda_build_args'.\n"\
-                "To build packages for a specific python version, please use this action's 'python-version' input instead."
-            exit 1
-        fi
         if ${{ contains(inputs.conda_convert_args, '--output-folder') }}; then
             echo -e "The destination folder for the converted packages is set internally and the '--output-folder' option is not allowed in 'conda_convert_args'.\n"
                 "To retrieve the paths of the built packages, please refer to this action's 'paths' output."
@@ -200,7 +192,7 @@ runs:
         else
           build_function="build"
         fi
-        conda_build_command="conda $build_function . --no-anaconda-upload --output-folder $out_dir --python ${{ inputs.python-version }} ${{ inputs.conda_build_args }}"
+        conda_build_command="conda $build_function . --no-anaconda-upload --output-folder $out_dir ${{ inputs.conda_build_args }}"
         echo "$conda_build_command"
         eval "$conda_build_command"
         HOST_PACKAGE=$(eval "$conda_build_command --output")
