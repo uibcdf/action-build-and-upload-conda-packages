@@ -81,7 +81,8 @@ inputs:
     default: false
   user:
     description: Name of the Anaconda user or organization where the conda package will be published.
-    required: true
+    required: false
+    default: ''
   label:
     description: Label of the published conda package.
     required: false
@@ -98,6 +99,22 @@ outputs:
 runs:
   using: "composite"
   steps:
+    - name: Sanity checks on inputs
+      shell: bash
+      run: |
+        echo "::group::Sanity checks on inputs"
+        if [ "${{ inputs.upload }}" == "true" ]; then
+          if [ "${{ inputs.token }}" == "" ]; then
+            echo -e "An Anaconda token is required when the package is to be uploaded.\n"\
+                    "Please specify a 'token', or set 'upload' to 'false'."
+            exit 1
+          if [ "${{ inputs.user }}" == "" ]; then
+            echo -e "An Anaconda user or organization is required when the package is to be uploaded.\n"\
+                    "Please specify a 'user', or set 'upload' to 'false'."
+            exit 1
+          fi
+        fi
+        echo "::endgroup::"
     - name: Event trigger data
       shell: bash
       run: |
