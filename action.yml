@@ -112,7 +112,7 @@ runs:
   using: "composite"
   steps:
     - name: Sanity checks on inputs
-      shell: bash -l {0} # CAMBIO
+      shell: bash -l {0}
       run: |
         echo "::group::Sanity checks on inputs"
         if [ "${{ inputs.upload }}" == "true" ]; then
