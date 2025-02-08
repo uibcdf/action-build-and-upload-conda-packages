@@ -168,7 +168,7 @@ runs:
         fi
         echo "::endgroup::"
     - name: Event trigger data
-      shell: bash -l {0} # CAMBIO
+      shell: bash -l {0}
       run: |
         echo "::group::Information about the trigger event"
         echo "Trigger event: $GITHUB_EVENT_NAME"
@@ -176,7 +176,7 @@ runs:
         echo "::endgroup::"
     - name: Checking if meta.yaml is in meta_yaml_dir
       id: checking-meta_yaml
-      shell: bash -l {0} # CAMBIO
+      shell: bash -l {0}
       working-directory: ${{ inputs.meta_yaml_dir }}
       run: |
         echo "::group::Checking if the file meta.yaml exists"
