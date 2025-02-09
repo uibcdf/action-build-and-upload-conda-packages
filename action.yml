@@ -112,15 +112,16 @@ runs:
   using: "composite"
   steps:
     - name: Sanity checks on inputs
-      shell: bash
+      shell: bash -l {0}
       run: |
         echo "::group::Sanity checks on inputs"
         if [ "${{ inputs.upload }}" == "true" ]; then
-          if [ "${{ inputs.token }}" == "" ]; then
+          if [ -z "${{ inputs.token }}" ]; then
             echo -e "An Anaconda token is required when the package is to be uploaded.\n"\
                     "Please specify a 'token', or set 'upload' to 'false'."
             exit 1
-          if [ "${{ inputs.user }}" == "" ]; then
+          fi
+          if [ -z "${{ inputs.user }}" ]; then
             echo -e "An Anaconda user or organization is required when the package is to be uploaded.\n"\
                     "Please specify a 'user', or set 'upload' to 'false'."
             exit 1
@@ -167,7 +168,7 @@ runs:
         fi
         echo "::endgroup::"
     - name: Event trigger data
-      shell: bash
+      shell: bash -l {0}
       run: |
         echo "::group::Information about the trigger event"
         echo "Trigger event: $GITHUB_EVENT_NAME"
@@ -175,7 +176,7 @@ runs:
         echo "::endgroup::"
     - name: Checking if meta.yaml is in meta_yaml_dir
       id: checking-meta_yaml
-      shell: bash
+      shell: bash -l {0}
       working-directory: ${{ inputs.meta_yaml_dir }}
       run: |
         echo "::group::Checking if the file meta.yaml exists"
@@ -199,15 +200,16 @@ runs:
         else
           build_function="build"
         fi
-        conda_build_command="conda $build_function . --no-anaconda-upload --output-folder $out_dir --python ${{ inputs.python-version }} ${ inputs.conda_build_args }"
+        conda_build_command="conda $build_function . --no-anaconda-upload --output-folder $out_dir --python ${{ inputs.python-version }} ${{ inputs.conda_build_args }}"
         echo "$conda_build_command"
         eval "$conda_build_command"
         HOST_PACKAGE=$(eval "$conda_build_command --output")
+        echo "HOST_PACKAGE=$HOST_PACKAGE" >> $GITHUB_OUTPUT
         echo "Package for host platform compiled as $HOST_PACKAGE"
         du -sh $HOST_PACKAGE
         echo "::endgroup::"
         echo "::group::Converting package for other platforms"
-        conda_convert_command="conda convert $HOST_PACKAGE -o $out_dir ${ inputs.conda_convert_args }"
+        conda_convert_command="conda convert $HOST_PACKAGE -o $out_dir ${{ inputs.conda_convert_args }}"
         if "${{ inputs.platform_all }}"; then
           platforms_options+=" -p all"
         fi
@@ -270,7 +272,7 @@ runs:
         fi
         export ANACONDA_API_TOKEN=${{ inputs.token }}
         SHORT_SHA="$(git rev-parse --short $GITHUB_SHA)"
-        package_paths=$(find ${{ steps.packages-compilation.outputs.out_dir }} -type f -name $(basename $HOST_PACKAGE))
+        package_paths=$(find ${{ steps.packages-compilation.outputs.out_dir }} -type f -name $(basename ${{ steps.packages-compilation.outputs.HOST_PACKAGE }}))
         for package_path in $package_paths; do
           command="anaconda upload --user ${{ inputs.user }} $force --label $label ${{ inputs.anaconda_upload_args }} $package_path"
           echo "$command"
