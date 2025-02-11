@@ -122,6 +122,8 @@ You can include this GitHub Action as a [step](https://docs.github.com/en/action
 
 An example of the basic usage of this GitHub Action is displayed below:
 
+<div id="basic-example">
+
 ```yaml
 name: Build and upload conda packages
 
@@ -151,6 +153,8 @@ jobs:
           user: uibcdf # Replace with your Anaconda username (or an Anaconda organization username)
           token: ${{ secrets.ANACONDA_TOKEN }} # Replace with the name of your Anaconda Token secret
 ```
+
+</div>
 
 ## Input parameters
 
@@ -218,8 +222,10 @@ The output paths can be useful for later jobs, for example to [create a GitHub r
 <details id="build-and-upload-a-package-when-a-new-git-tag-is-pushed-and-use-the-git-tag-as-the-package-version-example">
 <summary><b>Build and upload a package when a new <i>Git</i> tag is pushed and use the <i>Git</i> tag as the package version</b></summary>
 
-The `meta.yaml` file defines the [package version field](https://docs.conda.io/projects/conda-build/en/stable/resources/define-metadata.html#package-version) to specify the version number of the built package.<br>
+The `meta.yaml` file defines the [package version field](https://docs.conda.io/projects/conda-build/en/stable/resources/define-metadata.html#package-version) to specify the version number of the built package.
+
 To automatically set the package version to the latest <i>Git</i> tag, [Jinja Templating](https://docs.conda.io/projects/conda-build/en/stable/resources/define-metadata.html#templating-with-jinja) can be used by setting the version value to `{{ GIT_DESCRIBE_TAG }}` in the `meta.yaml` file:
+
 ```yaml
 # meta.yaml file
 package:
@@ -228,6 +234,7 @@ package:
 ```
 
 Then, to build and upload a package whenever a new <i>Git</i> tag is pushed, your workflow yaml file can look like the following:
+
 ```yaml
 # your_worfklow.yaml file
 name: Build and upload conda packages when a tag gets pushed
@@ -270,7 +277,8 @@ Version numbers including the dash character `-` are [not supported by conda-bui
 <details id="build-a-pure-python-conda-package-for-different-platforms-example">
 <summary><b>Build a <i>pure Python</i> conda package for different platforms</b></summary>
 
-When a package is built as pure Python library, `conda convert` can generate [packages for other platforms](https://docs.conda.io/projects/conda-build/en/latest/user-guide/tutorials/build-pkgs-skeleton.html?highlight=platform#optional-converting-conda-package-for-other-platforms).<br>
+When a package is built as pure Python library, `conda convert` can generate [packages for other platforms](https://docs.conda.io/projects/conda-build/en/latest/user-guide/tutorials/build-pkgs-skeleton.html?highlight=platform#optional-converting-conda-package-for-other-platforms).
+
 To create packages for multiple platforms (such as 'linux-64', 'osx-64' and 'win-64`), you can use the following workflow:
 
 ```yaml
@@ -313,8 +321,9 @@ jobs:
 <details id="build-a-platform-specific-conda-package-for-different-platforms-example">
 <summary><b>Build a platform-specific conda package for different platforms</b></summary>
 
-If a package requires platform-specific compilation instructions, `conda convert` is not a viable option.<br>
-Instead, the package can be built separately for each target platform by running multiple <i>Conda</i> builds in parallel using the [GitHub matrix strategy](https://docs.github.com/en/enterprise-cloud@latest/actions/writing-workflows/choosing-what-your-workflow-does/running-variations-of-jobs-in-a-workflow):
+If a package requires platform-specific compilation instructions, `conda convert` is not a viable option.
+
+Instead, the package can be built separately for each target platform by running multiple _Conda_ builds in parallel using the [GitHub matrix strategy](https://docs.github.com/en/enterprise-cloud@latest/actions/writing-workflows/choosing-what-your-workflow-does/running-variations-of-jobs-in-a-workflow):
 
 ```yaml
 # your_worfklow.yaml file
@@ -350,6 +359,7 @@ jobs:
           user: uibcdf # Replace with your Anaconda username (or an Anaconda organization username)
           token: ${{ secrets.ANACONDA_TOKEN }} # Replace with the name of your Anaconda Token secret
 ```
+
 This setup will run three jobs in parallel, building and uploading the Conda package for the `macos-latest`, `ubuntu-latest` and `windows-latest` platforms.
 
 **:bulb:TIP**<br>
@@ -405,6 +415,37 @@ jobs:
 <!-- Example 5 -->
 <details id="build-a-package-for-multiple-python-versions-example">
 <summary><b>Build a package for multiple <i>Python</i> versions</b></summary>
+
+The recommended approach for building packages across different _Python_ versions is to use [build variants](https://docs.conda.io/projects/conda-build/en/latest/resources/variants.html#build-variants).
+
+This involves placing a `conda_build_config.yaml` file inside the conda recipe directory, specifying variant inputs. `conda build` will then generate a separate build for each variant.
+
+For example, to build a package for _Python_ `2.7` and `3.5`, we can define:
+
+```yaml
+# conda_build_config.yaml file
+python:
+    - 2.7
+    - 3.5
+```
+
+```yaml
+# meta.yaml file
+...
+package:
+    name: your_package_name # Replace with your package name
+    version: package_version # Replace with your package version
+
+requirements:
+    build:
+        - python
+    run:
+        - python
+...
+```
+
+In this case, no changes are needed in the workflow file for this action. A setup similar to the [basic example](#how-to-use) will work.
+
 </details>
 
 <!-- Example 6 -->
