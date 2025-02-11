@@ -547,53 +547,38 @@ jobs:
 <details id="test-correctness-of-a-conda-build">
 <summary><b>Test correctness of a <i>Conda</i> build</b></summary>
 
-Typically this workflow is called in a deployment step, e.g. after a pull-request has succeeded and a new tag is added to the repository, or when a release is created. This means deployment generally occurs without checking if any errors to the build process were introduced in a pull request or code change.
+You can use this action in a [CI/CD workflow](https://github.com/resources/articles/devops/ci-cd) to test for errors during the conda build and conversion process, without uploading the package to Anaconda.org.
 
-To address this, the `upload` option is provided. Setting `upload: false` will run all the steps in the workflow except uploading to Anaconda.org. This can be useful in a CI workflow to test build correctness, and catch errors during the pull-request process.
-
-For example, this is a CI workflow similar to the deployment workflows above, that only builds the package without uploading it to Anaconda.org:
+To do this, set `upload: false` as an input parameter for the action:
 
 ```yaml
-name: Test Build of conda packages
+name: Test conda build
 
-# Controls when the action will run.
 on:
-  # Triggers the workflow on push or pull request events but only for the main branch
-  push:
-    branches: [ main ]
   pull_request:
-    branches: [ main ]
-
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
+    branches: main
 
 jobs:
-  conda_deployment_with_new_tag:
-    name: Test conda build of package with Python ${{ matrix.python-version }}
+  conda_deployment:
+    name: Conda deployment
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.9, 3.10, 3.11]
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - name: Checkout repo
+        uses: actions/checkout@v4
       - name: Conda environment creation and activation
         uses: conda-incubator/setup-miniconda@v3
         with:
-          python-version: ${{ matrix.python-version }}
-          environment-file: path/to/build/env.yaml    # Path to the build conda environment
+          python-version: 3.11
+          environment-file: path/to/conda/env.yaml    # Replace with the path to your conda environment
           auto-update-conda: false
           auto-activate-base: false
           show-channel-urls: true
       - name: Build and upload the conda packages
-        uses: uibcdf/action-build-and-upload-conda-packages@v1.4.0
+        uses: uibcdf/action-build-and-upload-conda-packages@v2.0.0
         with:
-          meta_yaml_dir: path/to/meta_yaml/directory
-          python-version: ${{ matrix.python-version }} # Values previously defined in `matrix`
-          platform_linux-64: true
-          platform_osx-64: true
-          platform_win-64: true
+          meta_yaml_dir: path/to/meta.yaml/directory # Replace with the path to your meta.yaml directory
+          user: uibcdf # Replace with your Anaconda username (or an Anaconda organization username)
+          token: ${{ secrets.ANACONDA_TOKEN }} # Replace with the name of your Anaconda Token secret
           upload: false
 ```
 </details>
