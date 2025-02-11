@@ -451,11 +451,96 @@ In this case, no changes are needed in the workflow file for this action. A setu
 <!-- Example 6 -->
 <details id="build-a-package-for-multiple-python-versions-example">
 <summary><b>Set the package label depending on the release type</b></summary>
+
+```yaml
+name: Build and upload conda packages with label according to release type
+
+on:
+  release:
+    types: [released, prereleased]
+
+jobs:
+  conda_deployment:
+    name: Conda deployment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Conda environment creation and activation
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          python-version: 3.11
+          environment-file: path/to/conda/env.yaml    # Replace with the path to your conda environment
+          auto-update-conda: false
+          auto-activate-base: false
+          show-channel-urls: true
+      - name: Set label
+        id: set-label
+        shell: bash
+        run: |
+          if [[ "${{ github.event.action }}" == "prereleased" ]]; then
+            label=dev
+          else
+            label=main
+          echo "label=$label" >> $GITHUB_OUTPUT
+      - name: Build and upload the conda packages
+        uses: uibcdf/action-build-and-upload-conda-packages@v2.0.0
+        with:
+          meta_yaml_dir: path/to/meta.yaml/directory # Replace with the path to your meta.yaml directory
+          user: uibcdf # Replace with your Anaconda username (or an Anaconda organization username)
+          token: ${{ secrets.ANACONDA_TOKEN }} # Replace with the name of your Anaconda Token secret
+          label: ${{ steps.set-label.outputs.label }}
+```
 </details>
 
 <!-- Example 7 -->
 <details id="create-a-gitHub-release-with-the-built-packages-as-artifacs-example">
 <summary><b>Create a GitHub release with the built packages as artifacs</b></summary>
+
+```yaml
+name: Build and upload conda packages and create GitHub release with built packages as artifacts
+
+on:
+  push:
+    tags: main
+
+jobs:
+  conda_deployment:
+    name: Conda deployment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Conda environment creation and activation
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          python-version: 3.11
+          environment-file: path/to/conda/env.yaml    # Replace with the path to your conda environment
+          auto-update-conda: false
+          auto-activate-base: false
+          show-channel-urls: true
+      - name: Build and upload the conda packages
+        id: conda-build-and-upload
+        uses: uibcdf/action-build-and-upload-conda-packages@v2.0.0
+        with:
+          meta_yaml_dir: path/to/meta.yaml/directory # Replace with the path to your meta.yaml directory
+          user: uibcdf # Replace with your Anaconda username (or an Anaconda organization username)
+          token: ${{ secrets.ANACONDA_TOKEN }} # Replace with the name of your Anaconda Token secret
+      - name: Re-format output paths
+        id: reformat-paths
+        # Needed to have the correct newline-separated files format for the following release step
+        run: |
+            paths=$(tr ' ' '\n' <<< "${{steps.conda-build-and-upload.outputs.paths}}")
+            echo "newline-separated-paths=$paths" >> $GITHUB_OUTPUT
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+            tag_name: ${{ github.ref_name }}
+            name: your_release_name # Replace with the name for your release
+            generate_release_notes: true
+            fail_on_unmatched_files: true
+            files: ${{steps.reformat-paths.outputs.newline-separated-paths}}
+```
 </details>
 
 <!-- Example 8 -->
