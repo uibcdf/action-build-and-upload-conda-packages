@@ -158,7 +158,6 @@ runs:
         echo "Associated commit SHA: $GITHUB_SHA"
         echo "::endgroup::"
     - name: Checking if meta.yaml is in meta_yaml_dir
-      id: checking-meta_yaml
       shell: bash -l {0}
       working-directory: ${{ inputs.meta_yaml_dir }}
       run: |
@@ -191,8 +190,41 @@ runs:
         echo "Package for host platform compiled as $HOST_PACKAGE"
         du -sh $HOST_PACKAGE
         echo "::endgroup::"
+    - name: Transmute .conda packages to .tar.bz2
+      id: transmutation
+      shell: bash -l {0}
+      env:
+        HOST_PACKAGE: ${{ steps.compilation.outputs.HOST_PACKAGE }}
+      run: |
+        # conda convert does not support .conda packages yet, therefore, we need to convert them 
+        # to .tar.bz2 first and then convert them back to .conda
+        # More info --> https://github.com/uibcdf/action-build-and-upload-conda-packages/issues/25
+        # Only perform transmutation if the package is a .conda package or conversion has been requested
+        echo "::group::Transmute .conda packages to .tar.bz2"
+        any_platform_inputs=$(jq 'to_entries | map(select(.key | startswith("platform_")) | .value == "true") | any' <<< '${{ toJSON(inputs) }}')
+        if [[ "${{ env.HOST_PACKAGE }}" == *.conda && (${{ contains(inputs.conda_convert_args, '-p ') }} == true || ${{ contains(inputs.conda_convert_args, '--platform ') }} == true || $any_platform_inputs == true) ]]; then
+          if ! command -v cph &> /dev/null; then # if cph is not installed, install it
+              echo "'conda-package-handling' is not installed. Installing it..."
+              conda install anaconda::conda-package-handling
+          fi
+          cph transmute ${{ env.HOST_PACKAGE }} .tar.bz2
+          host_package_tarfile=$(sed 's|.conda$|.tar.bz2|' <<< ${{ env.HOST_PACKAGE }})
+          echo "Transmuted '$(basename ${{ env.HOST_PACKAGE }})' to '$(basename $host_package_tarfile)'."
+        else
+          echo "No transmutation needed."
+          host_package_tarfile=
+        fi
+        echo "HOST_PACKAGE_TARFILE=$host_package_tarfile" >> $GITHUB_OUTPUT
+        echo "::endgroup::"
+    - name: Packages conversion
+      id: conversion
+      shell: bash -l {0}
+      working-directory: ${{ inputs.meta_yaml_dir }}
+      env:
+        HOST_PACKAGE_TARFILE: ${{ steps.transmutation.outputs.HOST_PACKAGE_TARFILE }}
+        HOST_PACKAGE_ORIG: ${{ steps.compilation.outputs.HOST_PACKAGE }}
+      run: |
         echo "::group::Converting package for other platforms"
-        conda_convert_command="conda convert $HOST_PACKAGE -o $out_dir ${{ inputs.conda_convert_args }}"
         if "${{ inputs.platform_all }}"; then
           platforms_options+=" -p all"
         fi
@@ -232,13 +264,38 @@ runs:
         if "${{ inputs.platform_win-64 }}"; then
           platforms_options+=" -p win-64"
         fi
-        if [ -n "$platforms_options" ]; then
-            echo "${conda_convert_command}${platforms_options}"
-            eval "${conda_convert_command}${platforms_options}"
+        if [[ -n "$platforms_options" || ${{ contains(inputs.conda_convert_args, '-p ') }} == true || ${{ contains(inputs.conda_convert_args, '--platform ') }} == true ]]; then
+          if [[ -n "${{ env.HOST_PACKAGE_TARFILE }}" ]]; then
+            PACKAGE_FILE=${{ env.HOST_PACKAGE_TARFILE }}
+          else
+            PACKAGE_FILE=${{ env.HOST_PACKAGE_ORIG }}
+          fi
+          conda_convert_command="conda convert $PACKAGE_FILE -o ${{ steps.compilation.outputs.out_dir }} ${{ inputs.conda_convert_args }}"
+          echo "${conda_convert_command}${platforms_options}"
+          eval "${conda_convert_command}${platforms_options}"
+        else
+          echo "No package conversion requested."
         fi
         if ! "${{ inputs.platform_host }}"; then
-          rm $HOST_PACKAGE
+          rm ${{ steps.compilation.outputs.HOST_PACKAGE }}
           echo "Package for host platform removed."
+        fi
+        echo "::endgroup::"
+    - name: Transmute .tar.bz2 packages back to .conda
+      id: back-transmutation
+      shell: bash -l {0}
+      run: |
+        host_package_tarfile=${{ steps.transmutation.outputs.HOST_PACKAGE_TARFILE }}
+        echo "::group::Transmute packages back to '.conda' format"
+        if [[ -n "$host_package_tarfile" ]]; then
+          # find transmuted .tar.bz2 packages
+          transmuted_packages=$(find ${{ steps.compilation.outputs.out_dir }} -type f -name $(basename $host_package_tarfile))
+          for package_path in $transmuted_packages; do
+            cph transmute $package_path .conda
+          done
+          echo "Transmuted '$(basename $package_path)' packages back to '$(basename ${host_package_tarfile%.tar.bz2}).conda'."
+        else
+          echo "No transmutation needed."
         fi
         echo "::endgroup::"
     - name: Set output paths
@@ -250,8 +307,8 @@ runs:
         echo "Output paths set to: ${paths[@]}"
         echo "paths=${paths[@]}" >> $GITHUB_OUTPUT
         echo "::endgroup::"
-    - name: Packages uploading
-      id: uploading
+    - name: Packages upload
+      id: upload
       if: inputs.upload == 'true'
       shell: bash -l {0}
       working-directory: ${{ inputs.meta_yaml_dir }}
