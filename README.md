@@ -122,6 +122,8 @@ You can include this GitHub Action as a [step](https://docs.github.com/en/action
 
 An example of the basic usage of this GitHub Action is displayed below:
 
+<div id="basic-example">
+
 ```yaml
 name: Build and upload conda packages
 
@@ -151,6 +153,8 @@ jobs:
           user: uibcdf # Replace with your Anaconda username (or an Anaconda organization username)
           token: ${{ secrets.ANACONDA_TOKEN }} # Replace with the name of your Anaconda Token secret
 ```
+
+</div>
 
 ## Input parameters
 
@@ -218,8 +222,10 @@ The output paths can be useful for later jobs, for example to [create a GitHub r
 <details id="build-and-upload-a-package-when-a-new-git-tag-is-pushed-and-use-the-git-tag-as-the-package-version-example">
 <summary><b>Build and upload a package when a new <i>Git</i> tag is pushed and use the <i>Git</i> tag as the package version</b></summary>
 
-The `meta.yaml` file defines the [package version field](https://docs.conda.io/projects/conda-build/en/stable/resources/define-metadata.html#package-version) to specify the version number of the built package.<br>
+The `meta.yaml` file defines the [package version field](https://docs.conda.io/projects/conda-build/en/stable/resources/define-metadata.html#package-version) to specify the version number of the built package.
+
 To automatically set the package version to the latest <i>Git</i> tag, [Jinja Templating](https://docs.conda.io/projects/conda-build/en/stable/resources/define-metadata.html#templating-with-jinja) can be used by setting the version value to `{{ GIT_DESCRIBE_TAG }}` in the `meta.yaml` file:
+
 ```yaml
 # meta.yaml file
 package:
@@ -228,6 +234,7 @@ package:
 ```
 
 Then, to build and upload a package whenever a new <i>Git</i> tag is pushed, your workflow yaml file can look like the following:
+
 ```yaml
 # your_worfklow.yaml file
 name: Build and upload conda packages when a tag gets pushed
@@ -270,7 +277,8 @@ Version numbers including the dash character `-` are [not supported by conda-bui
 <details id="build-a-pure-python-conda-package-for-different-platforms-example">
 <summary><b>Build a <i>pure Python</i> conda package for different platforms</b></summary>
 
-When a package is built as pure Python library, `conda convert` can generate [packages for other platforms](https://docs.conda.io/projects/conda-build/en/latest/user-guide/tutorials/build-pkgs-skeleton.html?highlight=platform#optional-converting-conda-package-for-other-platforms).<br>
+When a package is built as pure Python library, `conda convert` can generate [packages for other platforms](https://docs.conda.io/projects/conda-build/en/latest/user-guide/tutorials/build-pkgs-skeleton.html?highlight=platform#optional-converting-conda-package-for-other-platforms).
+
 To create packages for multiple platforms (such as 'linux-64', 'osx-64' and 'win-64`), you can use the following workflow:
 
 ```yaml
@@ -313,8 +321,9 @@ jobs:
 <details id="build-a-platform-specific-conda-package-for-different-platforms-example">
 <summary><b>Build a platform-specific conda package for different platforms</b></summary>
 
-If a package requires platform-specific compilation instructions, `conda convert` is not a viable option.<br>
-Instead, the package can be built separately for each target platform by running multiple <i>Conda</i> builds in parallel using the [GitHub matrix strategy](https://docs.github.com/en/enterprise-cloud@latest/actions/writing-workflows/choosing-what-your-workflow-does/running-variations-of-jobs-in-a-workflow):
+If a package requires platform-specific compilation instructions, `conda convert` is not a viable option.
+
+Instead, the package can be built separately for each target platform by running multiple _Conda_ builds in parallel using the [GitHub matrix strategy](https://docs.github.com/en/enterprise-cloud@latest/actions/writing-workflows/choosing-what-your-workflow-does/running-variations-of-jobs-in-a-workflow):
 
 ```yaml
 # your_worfklow.yaml file
@@ -350,6 +359,7 @@ jobs:
           user: uibcdf # Replace with your Anaconda username (or an Anaconda organization username)
           token: ${{ secrets.ANACONDA_TOKEN }} # Replace with the name of your Anaconda Token secret
 ```
+
 This setup will run three jobs in parallel, building and uploading the Conda package for the `macos-latest`, `ubuntu-latest` and `windows-latest` platforms.
 
 **:bulb:TIP**<br>
@@ -405,69 +415,170 @@ jobs:
 <!-- Example 5 -->
 <details id="build-a-package-for-multiple-python-versions-example">
 <summary><b>Build a package for multiple <i>Python</i> versions</b></summary>
+
+The recommended approach for building packages across different _Python_ versions is to use [build variants](https://docs.conda.io/projects/conda-build/en/latest/resources/variants.html#build-variants).
+
+This involves placing a `conda_build_config.yaml` file inside the conda recipe directory, specifying variant inputs. `conda build` will then generate a separate build for each variant.
+
+For example, to build a package for _Python_ `2.7` and `3.5`, we can define:
+
+```yaml
+# conda_build_config.yaml file
+python:
+    - 2.7
+    - 3.5
+```
+
+```yaml
+# meta.yaml file
+...
+package:
+    name: your_package_name # Replace with your package name
+    version: package_version # Replace with your package version
+
+requirements:
+    build:
+        - python
+    run:
+        - python
+...
+```
+
+In this case, no changes are needed in the workflow file for this action. A setup similar to the [basic example](#how-to-use) will work.
+
 </details>
 
 <!-- Example 6 -->
 <details id="build-a-package-for-multiple-python-versions-example">
 <summary><b>Set the package label depending on the release type</b></summary>
+
+```yaml
+name: Build and upload conda packages with label according to release type
+
+on:
+  release:
+    types: [released, prereleased]
+
+jobs:
+  conda_deployment:
+    name: Conda deployment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Conda environment creation and activation
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          python-version: 3.11
+          environment-file: path/to/conda/env.yaml    # Replace with the path to your conda environment
+          auto-update-conda: false
+          auto-activate-base: false
+          show-channel-urls: true
+      - name: Set label
+        id: set-label
+        shell: bash
+        run: |
+          if [[ "${{ github.event.action }}" == "prereleased" ]]; then
+            label=dev
+          else
+            label=main
+          echo "label=$label" >> $GITHUB_OUTPUT
+      - name: Build and upload the conda packages
+        uses: uibcdf/action-build-and-upload-conda-packages@v2.0.0
+        with:
+          meta_yaml_dir: path/to/meta.yaml/directory # Replace with the path to your meta.yaml directory
+          user: uibcdf # Replace with your Anaconda username (or an Anaconda organization username)
+          token: ${{ secrets.ANACONDA_TOKEN }} # Replace with the name of your Anaconda Token secret
+          label: ${{ steps.set-label.outputs.label }}
+```
 </details>
 
 <!-- Example 7 -->
 <details id="create-a-gitHub-release-with-the-built-packages-as-artifacs-example">
 <summary><b>Create a GitHub release with the built packages as artifacs</b></summary>
+
+```yaml
+name: Build and upload conda packages and create GitHub release with built packages as artifacts
+
+on:
+  push:
+    tags: main
+
+jobs:
+  conda_deployment:
+    name: Conda deployment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Conda environment creation and activation
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          python-version: 3.11
+          environment-file: path/to/conda/env.yaml    # Replace with the path to your conda environment
+          auto-update-conda: false
+          auto-activate-base: false
+          show-channel-urls: true
+      - name: Build and upload the conda packages
+        id: conda-build-and-upload
+        uses: uibcdf/action-build-and-upload-conda-packages@v2.0.0
+        with:
+          meta_yaml_dir: path/to/meta.yaml/directory # Replace with the path to your meta.yaml directory
+          user: uibcdf # Replace with your Anaconda username (or an Anaconda organization username)
+          token: ${{ secrets.ANACONDA_TOKEN }} # Replace with the name of your Anaconda Token secret
+      - name: Re-format output paths
+        id: reformat-paths
+        # Needed to have the correct newline-separated files format for the following release step
+        run: |
+            paths=$(tr ' ' '\n' <<< "${{steps.conda-build-and-upload.outputs.paths}}")
+            echo "newline-separated-paths=$paths" >> $GITHUB_OUTPUT
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+            tag_name: ${{ github.ref_name }}
+            name: your_release_name # Replace with the name for your release
+            generate_release_notes: true
+            fail_on_unmatched_files: true
+            files: ${{steps.reformat-paths.outputs.newline-separated-paths}}
+```
 </details>
 
 <!-- Example 8 -->
 <details id="test-correctness-of-a-conda-build">
 <summary><b>Test correctness of a <i>Conda</i> build</b></summary>
 
-Typically this workflow is called in a deployment step, e.g. after a pull-request has succeeded and a new tag is added to the repository, or when a release is created. This means deployment generally occurs without checking if any errors to the build process were introduced in a pull request or code change.
+You can use this action in a [CI/CD workflow](https://github.com/resources/articles/devops/ci-cd) to test for errors during the conda build and conversion process, without uploading the package to Anaconda.org.
 
-To address this, the `upload` option is provided. Setting `upload: false` will run all the steps in the workflow except uploading to Anaconda.org. This can be useful in a CI workflow to test build correctness, and catch errors during the pull-request process.
-
-For example, this is a CI workflow similar to the deployment workflows above, that only builds the package without uploading it to Anaconda.org:
+To do this, set `upload: false` as an input parameter for the action:
 
 ```yaml
-name: Test Build of conda packages
+name: Test conda build
 
-# Controls when the action will run.
 on:
-  # Triggers the workflow on push or pull request events but only for the main branch
-  push:
-    branches: [ main ]
   pull_request:
-    branches: [ main ]
-
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
+    branches: main
 
 jobs:
-  conda_deployment_with_new_tag:
-    name: Test conda build of package with Python ${{ matrix.python-version }}
+  conda_deployment:
+    name: Conda deployment
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.9, 3.10, 3.11]
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - name: Checkout repo
+        uses: actions/checkout@v4
       - name: Conda environment creation and activation
         uses: conda-incubator/setup-miniconda@v3
         with:
-          python-version: ${{ matrix.python-version }}
-          environment-file: path/to/build/env.yaml    # Path to the build conda environment
+          python-version: 3.11
+          environment-file: path/to/conda/env.yaml    # Replace with the path to your conda environment
           auto-update-conda: false
           auto-activate-base: false
           show-channel-urls: true
       - name: Build and upload the conda packages
-        uses: uibcdf/action-build-and-upload-conda-packages@v1.4.0
+        uses: uibcdf/action-build-and-upload-conda-packages@v2.0.0
         with:
-          meta_yaml_dir: path/to/meta_yaml/directory
-          python-version: ${{ matrix.python-version }} # Values previously defined in `matrix`
-          platform_linux-64: true
-          platform_osx-64: true
-          platform_win-64: true
+          meta_yaml_dir: path/to/meta.yaml/directory # Replace with the path to your meta.yaml directory
+          user: uibcdf # Replace with your Anaconda username (or an Anaconda organization username)
+          token: ${{ secrets.ANACONDA_TOKEN }} # Replace with the name of your Anaconda Token secret
           upload: false
 ```
 </details>
