@@ -3,5 +3,5 @@ channels:
   - nodefaults
 
 dependencies:
-  - anaconda-client
-  - conda-build
+  - boa
+  - numpy
