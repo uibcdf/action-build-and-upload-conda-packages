@@ -72,10 +72,6 @@ inputs:
     description: Upload built package to anaconda
     required: false
     default: true
-  overwrite:
-    description: Do not cancel the uploading if a package with the same name is found already in Anaconda.
-    required: false
-    default: ''
   user:
     description: Name of the Anaconda user or organization where the conda package will be published.
     required: false
@@ -150,11 +146,6 @@ runs:
         fi
         if ${{ contains(inputs.anaconda_upload_args, '--token') }} && [ -n "${{ inputs.token }}" ]; then
             echo -e "Both the 'token' input and the '--token' option within 'anaconda_upload_args' were specified.\n"\
-                "Please only use one of them."
-            exit 1
-        fi
-        if ${{ contains(inputs.anaconda_upload_args, '--force') }} && [ -n "${{ inputs.overwrite }}" ]; then
-            echo -e "Both the 'overwrite' input and the '--force' option within 'anaconda_upload_args' were specified.\n"\
                 "Please only use one of them."
             exit 1
         fi
@@ -268,12 +259,9 @@ runs:
         echo "::group::Conda packages uploading"
         label=${{ inputs.label }}
         label=${label:-main} #If label is empty (input not provided), set it to 'main'
-        if [[ "${{ inputs.overwrite }}" == true ]]; then
-          force=--force
-        fi
         export ANACONDA_API_TOKEN=${{ inputs.token }}
         for package_path in ${{ steps.set-output-paths.outputs.paths }}; do
-          command="anaconda upload --user ${{ inputs.user }} $force --label $label ${{ inputs.anaconda_upload_args }} $package_path"
+          command="anaconda upload --user ${{ inputs.user }} --label $label ${{ inputs.anaconda_upload_args }} $package_path"
           echo "$command"
           eval "$command"
         done
