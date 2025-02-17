@@ -103,7 +103,7 @@ inputs:
 outputs:
   paths:
     description: Paths for the built packages, in the format 'path1 path2 ... pathN'.
-    value: ${{steps.packages-uploading.outputs.paths}}
+    value: ${{steps.set-output-paths.outputs.paths}}
 
 runs:
   using: "composite"
@@ -180,7 +180,7 @@ runs:
         fi
         echo "::endgroup::"
     - name: Packages compilation
-      id: packages-compilation
+      id: compilation
       shell: bash -l {0}
       working-directory: ${{ inputs.meta_yaml_dir }}
       run: |
@@ -250,8 +250,17 @@ runs:
           echo "Package for host platform removed."
         fi
         echo "::endgroup::"
+    - name: Set output paths
+      id: set-output-paths
+      shell: bash -l {0}
+      run: |
+        echo "::group::Setting output paths"
+        paths=($(find ${{ steps.compilation.outputs.out_dir }} -type f -name $(basename ${{ steps.compilation.outputs.HOST_PACKAGE }})))
+        echo "Output paths set to: ${paths[@]}"
+        echo "paths=${paths[@]}" >> $GITHUB_OUTPUT
+        echo "::endgroup::"
     - name: Packages uploading
-      id: packages-uploading
+      id: uploading
       if: inputs.upload == 'true'
       shell: bash -l {0}
       working-directory: ${{ inputs.meta_yaml_dir }}
@@ -263,14 +272,9 @@ runs:
           force=--force
         fi
         export ANACONDA_API_TOKEN=${{ inputs.token }}
-        SHORT_SHA="$(git rev-parse --short $GITHUB_SHA)"
-        package_paths=$(find ${{ steps.packages-compilation.outputs.out_dir }} -type f -name $(basename ${{ steps.packages-compilation.outputs.HOST_PACKAGE }}))
-        for package_path in $package_paths; do
+        for package_path in ${{ steps.set-output-paths.outputs.paths }}; do
           command="anaconda upload --user ${{ inputs.user }} $force --label $label ${{ inputs.anaconda_upload_args }} $package_path"
           echo "$command"
           eval "$command"
-          paths+=($package_path)
         done
-        echo "paths=${paths[@]}" >> $GITHUB_OUTPUT 
         echo "::endgroup::"
-
