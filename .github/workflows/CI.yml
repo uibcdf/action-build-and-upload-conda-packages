@@ -45,7 +45,6 @@ jobs:
             inputs: >-
                 "platform_all": true,
                 "conda_build_args": --package-format .conda
-            expected_num_outputs: 13
             expected_outputs: >-
               linux-32/asyncio-3.4.1-py311_0.conda
               linux-64/asyncio-3.4.1-py311_0.conda
@@ -67,7 +66,6 @@ jobs:
                 "platform_osx-64": true,
                 "conda_convert_args": --platform win-32,
                 "conda_build_args": --package-format .tar.bz2
-            expected_num_outputs: 4
             expected_outputs: >-
               linux-64/asyncio-3.4.1-py311_0.tar.bz2
               osx-64/asyncio-3.4.1-py311_0.tar.bz2
@@ -77,7 +75,6 @@ jobs:
             inputs: >-
                 "platform_host": false,
                 "anaconda_upload_args": --label mylabel
-            expected_num_outputs: 0
             expected_outputs: ""
     steps:
       - name: Check out repository
@@ -104,7 +101,6 @@ jobs:
 
       - name: Verify outputs
         env:
-          EXPECTED_NUM_OUTPUTS: ${{ matrix.expected_num_outputs }}
           EXPECTED_OUTPUTS: ${{ matrix.expected_outputs }}
           OUTPUT_PATHS: ${{ fromJson(steps.test-action.outputs.outputs).paths }} # https://github.com/jenseng/dynamic-uses?tab=readme-ov-file#gotchaslimitations
         run: |
@@ -114,11 +110,6 @@ jobs:
           done
           # Sort output paths alphabetically, to make the comparison easier
           output_paths=($(printf "%s\n" "${output_paths[@]}" | sort))
-          n_outputs=${#output_paths[@]}
-          if [ $n_outputs != ${{ env.EXPECTED_NUM_OUTPUTS }} ]; then
-            echo "Wrong number of outputs: ${{ env.EXPECTED_NUM_OUTPUTS }} outputs expected, $n_outputs outputs found: [$(tr ' ' ', ' <<< ${output_paths[@]})]."
-            exit 1
-          fi
           if [[ "${output_paths[@]}" != "${{ env.EXPECTED_OUTPUTS }}" ]]; then
             echo "Wrong outputs. Outputs expected: [$(tr ' ' ', ' <<< '${{ env.EXPECTED_OUTPUTS }}')], outputs found: [$(tr ' ' ', ' <<< ${output_paths[@]})]."
             exit 1
