@@ -73,6 +73,12 @@ jobs:
               osx-64/asyncio-3.4.1-py311_0.tar.bz2
               win-32/asyncio-3.4.1-py311_0.tar.bz2
               win-64/asyncio-3.4.1-py311_0.tar.bz2
+          - label: "Test: Remove host platform, anaconda_upload_args."
+            inputs: >-
+                "platform_host": false,
+                "anaconda_upload_args": --label mylabel
+            expected_num_outputs: 0
+            expected_outputs: ""
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
