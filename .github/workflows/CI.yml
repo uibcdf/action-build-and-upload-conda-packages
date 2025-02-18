@@ -34,17 +34,17 @@ jobs:
   test-action:
     runs-on: ubuntu-latest
     needs: setup-conda-build
+    env:
+      COMMON_INPUTS: >-
+        "meta_yaml_dir": ci/asyncio_recipe,
+        "upload": false
     strategy:
       matrix:
         include:
-          - label: "Test: All platforms conversion, '.conda' package format"
+          - label: "Test: All platforms conversion, '.conda' package format."
             inputs: >-
-              {
-                "meta_yaml_dir": ci/asyncio_recipe,
-                "upload": false,
                 "platform_all": true,
                 "conda_build_args": --package-format .conda
-              }
             expected_num_outputs: 13
             expected_outputs: >-
               linux-32/asyncio-3.4.1-py311_0.conda
@@ -60,6 +60,19 @@ jobs:
               win-32/asyncio-3.4.1-py311_0.conda
               win-64/asyncio-3.4.1-py311_0.conda
               win-arm64/asyncio-3.4.1-py311_0.conda
+          - label: "Test: Specific platforms conversion, conda_convert_args, '.tar.bz2' package format."
+            inputs: >-
+                "platform_win-32": true,
+                "platform_win-64": true,
+                "platform_osx-64": true,
+                "conda_convert_args": --platform win-32,
+                "conda_build_args": --package-format .tar.bz2
+            expected_num_outputs: 4
+            expected_outputs: >-
+              linux-64/asyncio-3.4.1-py311_0.tar.bz2
+              osx-64/asyncio-3.4.1-py311_0.tar.bz2
+              win-32/asyncio-3.4.1-py311_0.tar.bz2
+              win-64/asyncio-3.4.1-py311_0.tar.bz2
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -77,7 +90,11 @@ jobs:
         with: 
         #   uses: uibcdf/action-build-and-upload-conda-packages@${{github.sha}}
           uses: uibcdf/action-build-and-upload-conda-packages@davide/conda_convert_dot_conda
-          with: ${{ matrix.inputs }}
+          with: >-
+            {
+              ${{ env.COMMON_INPUTS }},
+              ${{ matrix.inputs }}
+            }
 
       - name: Verify outputs
         env:
