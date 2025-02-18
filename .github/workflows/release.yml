@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   test-action:
-    uses: .github/workflows/test.yml
+    uses: ./.github/workflows/test.yml
     
   version-sanity-check:
     runs-on: ubuntu-latest
