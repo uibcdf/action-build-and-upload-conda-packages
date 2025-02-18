@@ -34,6 +34,32 @@ jobs:
   test-action:
     runs-on: ubuntu-latest
     needs: setup-conda-build
+    strategy:
+      matrix:
+        include:
+          - label: "Test: All platforms conversion, '.conda' package format"
+            inputs: >-
+              {
+                "meta_yaml_dir": ci/asyncio_recipe,
+                "upload": false,
+                "platform_all": true,
+                "conda_build_args": --package-format .conda
+              }
+            expected_num_outputs: 13
+            expected_outputs: >-
+              linux-32/asyncio-3.4.1-py311_0.conda
+              linux-64/asyncio-3.4.1-py311_0.conda
+              linux-aarch64/asyncio-3.4.1-py311_0.conda
+              linux-armv6l/asyncio-3.4.1-py311_0.conda
+              linux-armv7l/asyncio-3.4.1-py311_0.conda
+              linux-ppc64/asyncio-3.4.1-py311_0.conda
+              linux-ppc64le/asyncio-3.4.1-py311_0.conda
+              linux-s390x/asyncio-3.4.1-py311_0.conda
+              osx-64/asyncio-3.4.1-py311_0.conda
+              osx-arm64/asyncio-3.4.1-py311_0.conda
+              win-32/asyncio-3.4.1-py311_0.conda
+              win-64/asyncio-3.4.1-py311_0.conda
+              win-arm64/asyncio-3.4.1-py311_0.conda
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -45,37 +71,18 @@ jobs:
           cache-environment-key: environment-${{ hashFiles('ci/environment.yml') }}
           cache-downloads-key: downloads-${{ hashFiles('ci/environment.yml') }}
 
-      - name: "Test 1: All platforms conversion"
+      - name: ${{ matrix.label }}
         id: test-action
         uses: jenseng/dynamic-uses@v1 # Need this because github context is not supported within step.uses (https://github.com/actions/runner/issues/895)
         with: 
         #   uses: uibcdf/action-build-and-upload-conda-packages@${{github.sha}}
           uses: uibcdf/action-build-and-upload-conda-packages@davide/conda_convert_dot_conda
-          with: >-
-            {
-                "meta_yaml_dir": ci/asyncio_recipe,
-                "upload": false,
-                "platform_all": true,
-                "conda_build_args": --package-format .conda
-            }
+          with: ${{ matrix.inputs }}
 
       - name: Verify outputs
         env:
-          EXPECTED_LENGTH: 13
-          EXPECTED_OUTPUTS: >-
-            linux-32/asyncio-3.4.1-py311_0.conda
-            linux-64/asyncio-3.4.1-py311_0.conda
-            linux-aarch64/asyncio-3.4.1-py311_0.conda
-            linux-armv6l/asyncio-3.4.1-py311_0.conda
-            linux-armv7l/asyncio-3.4.1-py311_0.conda
-            linux-ppc64/asyncio-3.4.1-py311_0.conda
-            linux-ppc64le/asyncio-3.4.1-py311_0.conda
-            linux-s390x/asyncio-3.4.1-py311_0.conda
-            osx-64/asyncio-3.4.1-py311_0.conda
-            osx-arm64/asyncio-3.4.1-py311_0.conda
-            win-32/asyncio-3.4.1-py311_0.conda
-            win-64/asyncio-3.4.1-py311_0.conda
-            win-arm64/asyncio-3.4.1-py311_0.conda
+          EXPECTED_NUM_OUTPUTS: ${{ matrix.expected_num_outputs }}
+          EXPECTED_OUTPUTS: ${{ matrix.expected_outputs }}
           OUTPUT_PATHS: ${{ fromJson(steps.test-action.outputs.outputs).paths }} # https://github.com/jenseng/dynamic-uses?tab=readme-ov-file#gotchaslimitations
         run: |
           # Remove the folder name from the path, only leaving the architecture folder (e.g. linux-64/package_name)
@@ -85,8 +92,8 @@ jobs:
           # Sort output paths alphabetically, to make the comparison easier
           output_paths=($(printf "%s\n" "${output_paths[@]}" | sort))
           n_outputs=${#output_paths[@]}
-          if [ $n_outputs != ${{ env.EXPECTED_LENGTH }} ]; then
-            echo "Wrong number of outputs: ${{ env.EXPECTED_LENGTH }} outputs expected, $n_outputs outputs found: [$(tr ' ' ', ' <<< ${output_paths[@]})]."
+          if [ $n_outputs != ${{ env.EXPECTED_NUM_OUTPUTS }} ]; then
+            echo "Wrong number of outputs: ${{ env.EXPECTED_NUM_OUTPUTS }} outputs expected, $n_outputs outputs found: [$(tr ' ' ', ' <<< ${output_paths[@]})]."
             exit 1
           fi
           if [[ "${output_paths[@]}" != "${{ env.EXPECTED_OUTPUTS }}" ]]; then
