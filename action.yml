@@ -284,7 +284,10 @@ runs:
         fi
         export ANACONDA_API_TOKEN=${{ inputs.token }}
         SHORT_SHA="$(git rev-parse --short $GITHUB_SHA)"
-        package_paths=$(find ${{ steps.packages-compilation.outputs.out_dir }} -type f -name $(basename ${{ steps.packages-compilation.outputs.HOST_PACKAGE }}))
+        host_package='${{ steps.packages-compilation.outputs.HOST_PACKAGE }}'
+        host_package="${host_package//\\//}"
+        package_name="$(basename "$host_package")"
+        package_paths=$(find ${{ steps.packages-compilation.outputs.out_dir }} -type f -name "$package_name")
         for package_path in $package_paths; do
           command="anaconda upload --user ${{ inputs.user }} $force --label $label ${{ inputs.anaconda_upload_args }} $package_path"
           echo "$command"
