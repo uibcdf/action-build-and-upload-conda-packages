@@ -285,12 +285,29 @@ runs:
         export ANACONDA_API_TOKEN=${{ inputs.token }}
         SHORT_SHA="$(git rev-parse --short $GITHUB_SHA)"
         package_paths=$(find ${{ steps.packages-compilation.outputs.out_dir }} -type f -name $(basename ${{ steps.packages-compilation.outputs.HOST_PACKAGE }}))
+        if [ -z "$package_paths" ]; then
+          echo "::endgroup::"
+          echo "::error::No package was found to upload. Nothing was published."
+          exit 1
+        fi
+        failed=0
         for package_path in $package_paths; do
           command="anaconda upload --user ${{ inputs.user }} $force --label $label ${{ inputs.anaconda_upload_args }} $package_path"
           echo "$command"
-          eval "$command"
-          paths+=($package_path)
+          if eval "$command"; then
+            paths+=($package_path)
+          else
+            echo "::error::Upload failed for $(basename $package_path)"
+            failed=$((failed + 1))
+          fi
         done
         echo "paths=${paths[@]}" >> $GITHUB_OUTPUT 
         echo "::endgroup::"
+        # `anaconda upload` exits non-zero on failure, but the loop used to discard that,
+        # and the step's status came from the last echo. An expired token therefore looked
+        # exactly like a successful publication: green workflow, empty channel.
+        if [ "$failed" -gt 0 ]; then
+          echo "::error::$failed of $(echo $package_paths | wc -w) uploads failed. Those packages were not published."
+          exit 1
+        fi
 
