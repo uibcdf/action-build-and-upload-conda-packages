@@ -45,6 +45,33 @@ This GitHub Action was originally developed by the [Computational Biology and Dr
 Mexico City Children's Hospital Federico Gómez][UIBCDF]. For the complete list of contributors, refer to the [contributors section](https://github.com/uibcdf/action-build-and-upload-conda-packages/graphs/contributors).<br>
 Explore more GitHub Actions developed by UIBCDF at the [UIBCDF GitHub Organization page](https://github.com/search?q=topic%3Agithub-actions+org%3Auibcdf&type=Repositories).
 
+## What changed in v2.0.0
+
+**Failures used to be reported as successes.** Two steps ran under a login shell without
+`-e` and ended in an `echo`, so the step's exit status came from the `echo`:
+
+- a failing `conda build` left the compilation step green, and with `upload: false` the
+  failure was invisible from end to end;
+- a failing `anaconda upload` — an expired token, for instance — was discarded by the
+  upload loop, so the workflow finished green with an empty channel.
+
+Every step now runs under `set -euo pipefail`, and the upload step exits non-zero when any
+package fails to publish, naming how many did.
+
+**This is why v2.0.0 is a major version.** No input was removed and no default changed, but
+a workflow that was silently failing will now fail visibly. Consumers pinned to `@v1.5.0`
+are unaffected until they upgrade.
+
+Also in this release:
+
+- a new `built_paths` output lists every package built or converted, so the packages are
+  reachable when `upload` is `false` — the `paths` output only ever listed uploaded ones;
+- `github_release` creates the release **after** a successful build and upload, not before,
+  so a failed build no longer leaves a release behind. That step needs `contents: write`;
+- inputs reach the scripts through the environment instead of being interpolated into them,
+  and the internal commands are no longer run through `eval`;
+- the `platform_win-64` input was described as "Target platform win-32".
+
 ## Requirements
 
 ### Conda-build recipe
@@ -60,7 +87,7 @@ We recommend using the [conda-incubator/setup-miniconda](https://github.com/cond
 steps:
       ...
       - name: Conda environment creation and activation
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@v4
         with:
           python-version: 
           environment-file: path/to/conda/env.yaml # Path to the conda environment
@@ -137,9 +164,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Conda environment creation and activation
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@v4
         with:
           python-version: 3.11
           environment-file: path/to/conda/env.yaml    # Replace with the path to your conda environment
@@ -179,11 +206,12 @@ jobs:
 | `platform_linux-armv6l` | Build packages for the `linux-armv6l` platform. | Optional | `false` |
 | `platform_linux-armv7l` | Build packages for the `linux-armv7l` platform. | Optional | `false` |
 | `platform_linux-aarch64` | Build packages for the `linux-aarch64` platform. | Optional | `false` |
-| `platform_win-32` | Build packages for the `linux-win-32` platform. | Optional | `false` |
-| `platform_win-64` | Build packages for the `linux-win-64` platform. | Optional | `false` |
+| `platform_win-32` | Build packages for the `win-32` platform. | Optional | `false` |
+| `platform_win-64` | Build packages for the `win-64` platform. | Optional | `false` |
 | `conda_build_args` | [Additional command line arguments](#additional-command-line-arguments) to pass to the `conda build` command. | Optional |  |
 | `conda_convert_args` | [Additional command line arguments](#additional-command-line-arguments) to pass to the `conda convert` command. | Optional |  |
 | `anaconda_upload_args` | [Additional command line arguments](#additional-command-line-arguments) to pass to the `anaconda upload` command. | Optional |  |
+| `github_release` | Create a GitHub release for the pushed tag, after the packages are built and uploaded. Requires the job to grant `contents: write`. Does nothing when the workflow was not triggered by a tag. | Optional | `false` |
 
 ### Additional command line arguments
 This action, internally, calls the following commands:
@@ -209,10 +237,18 @@ Refer to the [Pass additional command-line arguments example](#pass-additional-c
 > - `--user`/`-u` together with the `user` input parameter
 > - `--force` together with the `overwrite` input parameter
 
+> [!WARNING]
+> `conda convert` relabels a package for another platform; it does not cross-compile it.
+> It is only meaningful for packages whose content is platform independent — pure Python,
+> or `noarch`. If your recipe builds a compiled extension, the `platform_*` inputs cannot
+> produce valid packages for those platforms from a single host build: build each platform
+> on its own runner instead.
+
 ## Outputs
 | Name | Description | 
 | --- | --- |
-| paths | Space-separated paths for the built packages, in the format `path1 path2 ... pathN`. |
+| paths | Space-separated paths for the packages that were **uploaded**, in the format `path1 path2 ... pathN`. Empty when `upload` is `false`. |
+| built_paths | Space-separated paths for every package **built or converted**, whether or not it was uploaded. Available even when `upload` is `false`. |
 
 The output paths can be useful for later jobs, for example to [create a GitHub release with the built packages as artifacs](#create-a-gitHub-release-with-the-built-packages-as-artifacs-example).
 
@@ -250,11 +286,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-tags: true
       - name: Conda environment creation and activation
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@v4
         with:
           python-version: 3.11
           environment-file: path/to/conda/env.yaml    # Replace with the path to your conda environment
@@ -296,9 +332,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Conda environment creation and activation
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@v4
         with:
           python-version: 3.11
           environment-file: path/to/conda/env.yaml    # Replace with the path to your conda environment
@@ -343,9 +379,9 @@ jobs:
         os: [macos-latest, ubuntu-latest, windows-latest]
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Conda environment creation and activation
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@v4
         with:
           python-version: 3.11
           environment-file: path/to/conda/env.yaml    # Replace with the path to your conda environment
@@ -391,9 +427,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Conda environment creation and activation
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@v4
         with:
           python-version: 3.11
           environment-file: path/to/conda/env.yaml    # Replace with the path to your conda environment
@@ -465,9 +501,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Conda environment creation and activation
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@v4
         with:
           python-version: 3.11
           environment-file: path/to/conda/env.yaml    # Replace with the path to your conda environment
@@ -510,9 +546,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Conda environment creation and activation
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@v4
         with:
           python-version: 3.11
           environment-file: path/to/conda/env.yaml    # Replace with the path to your conda environment
@@ -533,7 +569,7 @@ jobs:
             paths=$(tr ' ' '\n' <<< "${{steps.conda-build-and-upload.outputs.paths}}")
             echo "newline-separated-paths=$paths" >> $GITHUB_OUTPUT
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
             tag_name: ${{ github.ref_name }}
             name: your_release_name # Replace with the name for your release
@@ -564,9 +600,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Conda environment creation and activation
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@v4
         with:
           python-version: 3.11
           environment-file: path/to/conda/env.yaml    # Replace with the path to your conda environment
