@@ -45,6 +45,17 @@ This GitHub Action was originally developed by the [Computational Biology and Dr
 Mexico City Children's Hospital Federico Gómez][UIBCDF]. For the complete list of contributors, refer to the [contributors section](https://github.com/uibcdf/action-build-and-upload-conda-packages/graphs/contributors).<br>
 Explore more GitHub Actions developed by UIBCDF at the [UIBCDF GitHub Organization page](https://github.com/search?q=topic%3Agithub-actions+org%3Auibcdf&type=Repositories).
 
+## What changed in v2.0.1
+
+Conda recipes with build variants now work as documented. The action treats the output
+of `conda build --output` as a list, converts every host package requested by the recipe,
+and reports or uploads every resulting artifact. In v2.0.0, the implementation stored
+that output in a single path and failed as soon as a recipe produced more than one
+variant.
+
+The action now has an integration test that builds two Python variants and verifies both
+paths through the public `built_paths` output.
+
 ## What changed in v2.0.0
 
 **Failures used to be reported as successes.** Two steps ran under a login shell without
@@ -96,7 +107,7 @@ steps:
           show-channel-urls: true
       ...      
       - name: Build and upload the conda packages
-        uses: uibcdf/action-build-and-upload-conda-packages@v2.0.0
+        uses: uibcdf/action-build-and-upload-conda-packages@v2.0.1
         ...
 ```
 
@@ -174,7 +185,7 @@ jobs:
           auto-activate-base: false
           show-channel-urls: true
       - name: Build and upload the conda packages
-        uses: uibcdf/action-build-and-upload-conda-packages@v2.0.0
+        uses: uibcdf/action-build-and-upload-conda-packages@v2.0.1
         with:
           meta_yaml_dir: path/to/meta.yaml/directory # Replace with the path to your meta.yaml directory
           user: uibcdf # Replace with your Anaconda username (or an Anaconda organization username)
@@ -298,7 +309,7 @@ jobs:
           auto-activate-base: false
           show-channel-urls: true
       - name: Build and upload the conda packages
-        uses: uibcdf/action-build-and-upload-conda-packages@v2.0.0
+        uses: uibcdf/action-build-and-upload-conda-packages@v2.0.1
         with:
           meta_yaml_dir: path/to/meta.yaml/directory # Replace with the path to your meta.yaml directory
           user: uibcdf # Replace with your Anaconda username (or an Anaconda organization username)
@@ -342,7 +353,7 @@ jobs:
           auto-activate-base: false
           show-channel-urls: true
       - name: Build and upload the conda packages
-        uses: uibcdf/action-build-and-upload-conda-packages@v2.0.0
+        uses: uibcdf/action-build-and-upload-conda-packages@v2.0.1
         with:
           meta_yaml_dir: path/to/meta.yaml/directory # Replace with the path to your meta.yaml directory
           user: uibcdf # Replace with your Anaconda username (or an Anaconda organization username)
@@ -389,7 +400,7 @@ jobs:
           auto-activate-base: false
           show-channel-urls: true
       - name: Build and upload the conda packages
-        uses: uibcdf/action-build-and-upload-conda-packages@v2.0.0
+        uses: uibcdf/action-build-and-upload-conda-packages@v2.0.1
         with:
           meta_yaml_dir: path/to/meta.yaml/directory # Replace with the path to your meta.yaml directory
           user: uibcdf # Replace with your Anaconda username (or an Anaconda organization username)
@@ -437,7 +448,7 @@ jobs:
           auto-activate-base: false
           show-channel-urls: true
       - name: Build and upload the conda packages
-        uses: uibcdf/action-build-and-upload-conda-packages@v2.0.0
+        uses: uibcdf/action-build-and-upload-conda-packages@v2.0.1
         with:
           meta_yaml_dir: path/to/meta.yaml/directory # Replace with the path to your meta.yaml directory
           user: uibcdf # Replace with your Anaconda username (or an Anaconda organization username)
@@ -520,7 +531,7 @@ jobs:
             label=main
           echo "label=$label" >> $GITHUB_OUTPUT
       - name: Build and upload the conda packages
-        uses: uibcdf/action-build-and-upload-conda-packages@v2.0.0
+        uses: uibcdf/action-build-and-upload-conda-packages@v2.0.1
         with:
           meta_yaml_dir: path/to/meta.yaml/directory # Replace with the path to your meta.yaml directory
           user: uibcdf # Replace with your Anaconda username (or an Anaconda organization username)
@@ -557,7 +568,7 @@ jobs:
           show-channel-urls: true
       - name: Build and upload the conda packages
         id: conda-build-and-upload
-        uses: uibcdf/action-build-and-upload-conda-packages@v2.0.0
+        uses: uibcdf/action-build-and-upload-conda-packages@v2.0.1
         with:
           meta_yaml_dir: path/to/meta.yaml/directory # Replace with the path to your meta.yaml directory
           user: uibcdf # Replace with your Anaconda username (or an Anaconda organization username)
@@ -610,7 +621,7 @@ jobs:
           auto-activate-base: false
           show-channel-urls: true
       - name: Build and upload the conda packages
-        uses: uibcdf/action-build-and-upload-conda-packages@v2.0.0
+        uses: uibcdf/action-build-and-upload-conda-packages@v2.0.1
         with:
           meta_yaml_dir: path/to/meta.yaml/directory # Replace with the path to your meta.yaml directory
           user: uibcdf # Replace with your Anaconda username (or an Anaconda organization username)

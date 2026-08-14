@@ -235,10 +235,19 @@ runs:
         # syntax.
         echo "conda $build_function . --no-anaconda-upload --output-folder $out_dir $CONDA_BUILD_ARGS"
         conda "$build_function" . --no-anaconda-upload --output-folder "$out_dir" $CONDA_BUILD_ARGS
-        HOST_PACKAGE="$(conda "$build_function" . --no-anaconda-upload --output-folder "$out_dir" $CONDA_BUILD_ARGS --output)"
-        echo "HOST_PACKAGE=$HOST_PACKAGE" >> "$GITHUB_OUTPUT"
-        echo "Package for host platform compiled as $HOST_PACKAGE"
-        du -sh "$HOST_PACKAGE"
+        host_packages=()
+        while IFS= read -r package_path; do
+          if [ -n "$package_path" ]; then
+            host_packages+=("$package_path")
+          fi
+        done < <(conda "$build_function" . --no-anaconda-upload --output-folder "$out_dir" $CONDA_BUILD_ARGS --output)
+        if [ "${#host_packages[@]}" -eq 0 ]; then
+          echo "::error::Conda did not report any host packages after a successful build."
+          exit 1
+        fi
+        echo "Host packages compiled:"
+        printf '  %s\n' "${host_packages[@]}"
+        du -sh "${host_packages[@]}"
         echo "::endgroup::"
         echo "::group::Converting package for other platforms"
         platforms_options=""
@@ -263,18 +272,20 @@ runs:
             platforms_options+=" -p $platform"
           fi
         done
-        if [ -n "$platforms_options" ]; then
-            echo "conda convert $HOST_PACKAGE -o $out_dir $CONDA_CONVERT_ARGS$platforms_options"
-            conda convert "$HOST_PACKAGE" -o "$out_dir" $CONDA_CONVERT_ARGS $platforms_options
-        fi
-        if [ "$PLATFORM_HOST" != "true" ]; then
-          rm "$HOST_PACKAGE"
-          echo "Package for host platform removed."
-        fi
+        for host_package in "${host_packages[@]}"; do
+          if [ -n "$platforms_options" ]; then
+            echo "conda convert $host_package -o $out_dir $CONDA_CONVERT_ARGS$platforms_options"
+            conda convert "$host_package" -o "$out_dir" $CONDA_CONVERT_ARGS $platforms_options
+          fi
+          if [ "$PLATFORM_HOST" != "true" ]; then
+            rm "$host_package"
+            echo "Host package removed: $host_package"
+          fi
+        done
         built_paths=()
         while IFS= read -r line; do
           built_paths+=("$line")
-        done < <(find "$out_dir" -type f -name "$(basename "$HOST_PACKAGE")")
+        done < <(find "$out_dir" -type f \( -name '*.tar.bz2' -o -name '*.conda' \))
         echo "built_paths=${built_paths[*]}" >> "$GITHUB_OUTPUT"
         echo "Packages available after compilation and conversion:"
         printf '  %s\n' "${built_paths[@]}"
@@ -291,7 +302,6 @@ runs:
         ANACONDA_API_TOKEN: ${{ inputs.token }}
         ANACONDA_UPLOAD_ARGS: ${{ inputs.anaconda_upload_args }}
         OUT_DIR: ${{ steps.packages-compilation.outputs.out_dir }}
-        HOST_PACKAGE: ${{ steps.packages-compilation.outputs.HOST_PACKAGE }}
       run: |
         set -euo pipefail
         echo "::group::Conda packages uploading"
@@ -303,7 +313,7 @@ runs:
         package_paths=()
         while IFS= read -r line; do
           package_paths+=("$line")
-        done < <(find "$OUT_DIR" -type f -name "$(basename "$HOST_PACKAGE")")
+        done < <(find "$OUT_DIR" -type f \( -name '*.tar.bz2' -o -name '*.conda' \))
         if [ "${#package_paths[@]}" -eq 0 ]; then
           echo "::endgroup::"
           echo "::error::No package was found to upload. Nothing was published."

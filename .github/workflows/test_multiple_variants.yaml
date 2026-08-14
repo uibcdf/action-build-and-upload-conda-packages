@@ -1,0 +1,49 @@
+name: Test multiple Conda variants
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  multiple-python-variants:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Conda
+        uses: mamba-org/setup-micromamba@v3.2.1
+        with:
+          environment-name: action-test
+          create-args: >-
+            python=3.13
+            conda-build
+            anaconda-client
+          condarc: |
+            channels:
+              - conda-forge
+            channel_priority: strict
+
+      - name: Build all variants
+        id: build
+        uses: ./
+        with:
+          meta_yaml_dir: tests/fixtures/multiple-python-variants
+          upload: false
+
+      - name: Verify both variants
+        shell: bash
+        env:
+          BUILT_PATHS: ${{ steps.build.outputs.built_paths }}
+        run: |
+          set -euo pipefail
+          read -r -a built_paths <<< "$BUILT_PATHS"
+          if [[ "${#built_paths[@]}" -ne 2 ]]; then
+            echo "Expected two built packages, found ${#built_paths[@]}: $BUILT_PATHS"
+            exit 1
+          fi
+          for package_path in "${built_paths[@]}"; do
+            test -f "$package_path"
+          done
+          [[ "$BUILT_PATHS" == *"py311"* ]]
+          [[ "$BUILT_PATHS" == *"py312"* ]]
