@@ -1,0 +1,113 @@
+name: CI
+
+on:
+  push:
+    branches: main
+  pull_request:
+    branches: main
+  workflow_dispatch:
+  workflow_call:
+env:
+  CONDA_PKGS_DIRS: ~/conda_pkgs_dir
+defaults:
+  run:
+    shell: bash -l {0}
+
+jobs:
+  setup-conda-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+    
+      - name: Set up micromamba
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-file: ci/environment.yml
+          cache-environment-key: environment-${{ hashFiles('ci/environment.yml') }}
+          cache-downloads-key: downloads-${{ hashFiles('ci/environment.yml') }}
+
+  test-action:
+    runs-on: ubuntu-latest
+    needs: setup-conda-build
+    env:
+      COMMON_INPUTS: >-
+        "meta_yaml_dir": ci/asyncio_recipe,
+        "upload": false
+    strategy:
+      matrix:
+        include:
+          - label: "Test: All platforms conversion, '.conda' package format."
+            inputs: >-
+                "platform_all": true,
+                "conda_build_args": --package-format .conda
+            expected_outputs: >-
+              linux-32/asyncio-3.4.1-py311_0.conda
+              linux-64/asyncio-3.4.1-py311_0.conda
+              linux-aarch64/asyncio-3.4.1-py311_0.conda
+              linux-armv6l/asyncio-3.4.1-py311_0.conda
+              linux-armv7l/asyncio-3.4.1-py311_0.conda
+              linux-ppc64/asyncio-3.4.1-py311_0.conda
+              linux-ppc64le/asyncio-3.4.1-py311_0.conda
+              linux-s390x/asyncio-3.4.1-py311_0.conda
+              osx-64/asyncio-3.4.1-py311_0.conda
+              osx-arm64/asyncio-3.4.1-py311_0.conda
+              win-32/asyncio-3.4.1-py311_0.conda
+              win-64/asyncio-3.4.1-py311_0.conda
+              win-arm64/asyncio-3.4.1-py311_0.conda
+          - label: "Test: Specific platforms conversion, conda_convert_args, '.tar.bz2' package format."
+            inputs: >-
+                "platform_win-32": true,
+                "platform_win-64": true,
+                "platform_osx-64": true,
+                "conda_convert_args": --platform win-32,
+                "conda_build_args": --package-format .tar.bz2
+            expected_outputs: >-
+              linux-64/asyncio-3.4.1-py311_0.tar.bz2
+              osx-64/asyncio-3.4.1-py311_0.tar.bz2
+              win-32/asyncio-3.4.1-py311_0.tar.bz2
+              win-64/asyncio-3.4.1-py311_0.tar.bz2
+          - label: "Test: Remove host platform, anaconda_upload_args."
+            inputs: >-
+                "platform_host": false,
+                "anaconda_upload_args": --label mylabel
+            expected_outputs: ""
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up micromamba
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-file: ci/environment.yml
+          cache-environment-key: environment-${{ hashFiles('ci/environment.yml') }}
+          cache-downloads-key: downloads-${{ hashFiles('ci/environment.yml') }}
+
+      - name: ${{ matrix.label }}
+        id: test-action
+        uses: jenseng/dynamic-uses@v1 # Need this because github context is not supported within step.uses (https://github.com/actions/runner/issues/895)
+        with: 
+          uses: uibcdf/action-build-and-upload-conda-packages@${{github.sha}}
+          with: >-
+            {
+              ${{ env.COMMON_INPUTS }},
+              ${{ matrix.inputs }}
+            }
+
+      - name: Verify outputs
+        env:
+          EXPECTED_OUTPUTS: ${{ matrix.expected_outputs }}
+          OUTPUT_PATHS: ${{ fromJson(steps.test-action.outputs.outputs).paths }} # https://github.com/jenseng/dynamic-uses?tab=readme-ov-file#gotchaslimitations
+        run: |
+          # Remove the folder name from the path, only leaving the architecture folder (e.g. linux-64/package_name)
+          for path in ${{ env.OUTPUT_PATHS }}; do
+            output_paths+=($(sed -E 's|.*/([^/]+/[^/]+)$|\1|g' <<< $path))
+          done
+          # Sort output paths alphabetically, to make the comparison easier
+          output_paths=($(printf "%s\n" "${output_paths[@]}" | sort))
+          if [[ "${output_paths[@]}" != "${{ env.EXPECTED_OUTPUTS }}" ]]; then
+            echo "Wrong outputs. Outputs expected: [$(tr ' ' ', ' <<< '${{ env.EXPECTED_OUTPUTS }}')], outputs found: [$(tr ' ' ', ' <<< ${output_paths[@]})]."
+            exit 1
+          fi
+
+
