@@ -58,8 +58,8 @@ jobs:
             else
               python_version=3.12
             fi
-            conda create --yes --prefix "$test_prefix" \
-              "python=$python_version" "$package_path"
+            conda create --yes --prefix "$test_prefix" "python=$python_version"
+            conda install --yes --prefix "$test_prefix" "$package_path"
             conda run --prefix "$test_prefix" python -c "import action_multiple_variants_fixture"
             index=$((index + 1))
           done
