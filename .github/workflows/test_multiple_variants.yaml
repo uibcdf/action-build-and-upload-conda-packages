@@ -38,7 +38,7 @@ jobs:
           conda_build_args: --no-test
 
       - name: Verify both variants
-        shell: bash
+        shell: bash -el {0}
         env:
           BUILT_PATHS: ${{ steps.build.outputs.built_paths }}
         run: |
@@ -53,7 +53,13 @@ jobs:
           for package_path in "${built_paths[@]}"; do
             test -f "$package_path"
             test_prefix="$test_root/env-$index"
-            conda create --yes --prefix "$test_prefix" "$package_path"
+            if [[ "$package_path" == *"py311"* ]]; then
+              python_version=3.11
+            else
+              python_version=3.12
+            fi
+            conda create --yes --prefix "$test_prefix" \
+              "python=$python_version" "$package_path"
             conda run --prefix "$test_prefix" python -c "import action_multiple_variants_fixture"
             index=$((index + 1))
           done
