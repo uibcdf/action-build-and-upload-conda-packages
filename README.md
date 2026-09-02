@@ -45,6 +45,15 @@ This GitHub Action was originally developed by the [Computational Biology and Dr
 Mexico City Children's Hospital Federico Gómez][UIBCDF]. For the complete list of contributors, refer to the [contributors section](https://github.com/uibcdf/action-build-and-upload-conda-packages/graphs/contributors).<br>
 Explore more GitHub Actions developed by UIBCDF at the [UIBCDF GitHub Organization page](https://github.com/search?q=topic%3Agithub-actions+org%3Auibcdf&type=Repositories).
 
+## What changed in v2.0.2
+
+Multiple build variants now work on Windows as well as Unix runners. The action removes
+the carriage return emitted by `conda build --output` on Windows before using each
+reported package path. Without that normalization all variants compiled successfully,
+but the action treated the trailing carriage return as part of each filename and stopped
+before uploading. The multiple-variant integration test now runs on both Ubuntu and
+Windows.
+
 ## What changed in v2.0.1
 
 Conda recipes with build variants now work as documented. The action treats the output

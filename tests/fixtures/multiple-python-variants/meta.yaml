@@ -4,9 +4,6 @@ package:
 
 build:
   number: 0
-  script:
-    - mkdir -p "$SP_DIR"
-    - echo '__version__ = "0.1.0"' > "$SP_DIR/action_multiple_variants_fixture.py"
 
 requirements:
   host:
