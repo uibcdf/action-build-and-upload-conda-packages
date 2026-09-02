@@ -1,3 +1,6 @@
 python:
   - "3.11"
   - "3.12"
+
+python_debug:
+  - false
