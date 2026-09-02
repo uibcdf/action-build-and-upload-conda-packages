@@ -52,7 +52,7 @@ the carriage return emitted by `conda build --output` on Windows before using ea
 reported package path. Without that normalization all variants compiled successfully,
 but the action treated the trailing carriage return as part of each filename and stopped
 before uploading. The multiple-variant integration test now runs on both Ubuntu and
-Windows.
+Windows, installs every reported artifact in a clean environment, and imports it.
 
 ## What changed in v2.0.1
 

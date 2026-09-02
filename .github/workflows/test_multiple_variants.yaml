@@ -35,6 +35,7 @@ jobs:
         with:
           meta_yaml_dir: tests/fixtures/multiple-python-variants
           upload: false
+          conda_build_args: --no-test
 
       - name: Verify both variants
         shell: bash
@@ -47,8 +48,14 @@ jobs:
             echo "Expected two built packages, found ${#built_paths[@]}: $BUILT_PATHS"
             exit 1
           fi
+          test_root="$(mktemp -d -t variant-tests-XXXXXXXXXX)"
+          index=0
           for package_path in "${built_paths[@]}"; do
             test -f "$package_path"
+            test_prefix="$test_root/env-$index"
+            conda create --yes --prefix "$test_prefix" "$package_path"
+            conda run --prefix "$test_prefix" python -c "import action_multiple_variants_fixture"
+            index=$((index + 1))
           done
           [[ "$BUILT_PATHS" == *"py311"* ]]
           [[ "$BUILT_PATHS" == *"py312"* ]]
