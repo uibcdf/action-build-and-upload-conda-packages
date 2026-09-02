@@ -45,6 +45,14 @@ This GitHub Action was originally developed by the [Computational Biology and Dr
 Mexico City Children's Hospital Federico Gómez][UIBCDF]. For the complete list of contributors, refer to the [contributors section](https://github.com/uibcdf/action-build-and-upload-conda-packages/graphs/contributors).<br>
 Explore more GitHub Actions developed by UIBCDF at the [UIBCDF GitHub Organization page](https://github.com/search?q=topic%3Agithub-actions+org%3Auibcdf&type=Repositories).
 
+## What changed in v2.0.3
+
+The action no longer runs a second complete `conda build --output` render after a
+successful build. Because every build writes into a new isolated output directory, the
+host artifacts can be discovered there directly. This preserves the multi-variant
+`built_paths`, conversion, and upload behavior while avoiding a redundant dependency
+resolution pass on every job.
+
 ## What changed in v2.0.2
 
 Multiple build variants now work on Windows as well as Unix runners. The action removes

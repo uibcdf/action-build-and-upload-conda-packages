@@ -237,16 +237,10 @@ runs:
         conda "$build_function" . --no-anaconda-upload --output-folder "$out_dir" $CONDA_BUILD_ARGS
         host_packages=()
         while IFS= read -r package_path; do
-          # conda-build writes CRLF to redirected output on Windows. Bash removes
-          # the newline but retains the carriage return, which otherwise becomes
-          # part of the path and prevents the package from being uploaded.
-          package_path="${package_path%$'\r'}"
-          if [ -n "$package_path" ]; then
-            host_packages+=("$package_path")
-          fi
-        done < <(conda "$build_function" . --no-anaconda-upload --output-folder "$out_dir" $CONDA_BUILD_ARGS --output)
+          host_packages+=("$package_path")
+        done < <(find "$out_dir" -type f \( -name '*.tar.bz2' -o -name '*.conda' \))
         if [ "${#host_packages[@]}" -eq 0 ]; then
-          echo "::error::Conda did not report any host packages after a successful build."
+          echo "::error::Conda did not create any host packages after a successful build."
           exit 1
         fi
         echo "Host packages compiled:"
