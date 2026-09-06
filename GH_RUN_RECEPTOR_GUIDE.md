@@ -6,7 +6,7 @@ Metadata
 
 - Source repository: `gh-run-receptor`
 - Source document: `standards/GH_RUN_RECEPTOR_GUIDE.md`
-- Source version: `gh-run-receptor@0.11.0`
+- Source version: `gh-run-receptor@0.12.0`
 - Last synced: 2026-09-06
 
 ## What gh-run-receptor is
@@ -43,7 +43,7 @@ successful npm release case from 95 to 84 tokens (11.6%).
 
 ## Supported integration level
 
-Version `0.11.0` is a source preview with:
+Version `0.12.0` is a source preview with:
 
 - `inspect`, `capture`, offline `replay`, and transition-only `watch`;
 - `human`, `llm`, and JSON rendering;
@@ -60,11 +60,15 @@ Version `0.11.0` is a source preview with:
 - structured, bounded, and redacted GitHub acquisition-error categories.
 - Python console-command, test, build, wheel-installation, and smoke-test validation on
   Ubuntu, macOS, and Windows with Python 3.11, 3.12, and 3.13.
+- a composite GitHub Action with bounded log, job summary, scalar outputs, canonical JSON
+  artifact, and exact source provenance;
+- checkout-local and remote-source Action validation on Ubuntu, macOS, and Windows.
 
 Configurable required jobs, documentation phases, or release gates; pattern matching;
 arbitrary rule keys; remote workflow discovery; external registry/archive verification;
-and the embedded GitHub Action are not implemented in `0.11.0`. Cross-platform validation
-does not yet cover installation as a GitHub CLI script extension.
+and a reusable aggregator workflow are not implemented in `0.12.0`. Restricted-token and
+fork behavior remain release-gate gaps. Cross-platform validation covers installation as a
+GitHub CLI script extension and the composite Action on hosted runners.
 
 ## Installation
 
@@ -72,14 +76,14 @@ The client requires Git, Python 3.11 through 3.13, and an authenticated GitHub C
 Install the exact preview tag:
 
 ```text
-gh extension install uibcdf/gh-run-receptor --pin 0.11.0
+gh extension install uibcdf/gh-run-receptor --pin 0.12.0
 gh run-receptor --version
 ```
 
 Expected version output:
 
 ```text
-0.11.0
+0.12.0
 ```
 
 Pinning is deliberate. A pinned script extension does not advance through an ordinary
@@ -96,6 +100,40 @@ For development from a local checkout:
 gh extension install .
 gh run-receptor --help
 ```
+
+## Embedded Action
+
+Use a downstream `workflow_run` workflow when a terminal source-run conclusion is needed:
+
+```yaml
+name: Compact CI report
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: uibcdf/gh-run-receptor@0.12.0
+        with:
+          run-id: ${{ github.event.workflow_run.id }}
+          repository: ${{ github.repository }}
+          profile: ci
+```
+
+The Action emits compact stdout, an escaped bounded job summary, scalar outputs, and a
+`gh-run-receptor.report@1` JSON artifact. It preserves source failure without failing the
+reporter. Internal reporter errors are fail-open by default; controlled validation may set
+`strict-reporter: "true"`. A same-run invocation observes that run while active and must
+therefore report `PENDING`, not a terminal result. Pin a full commit SHA instead of the tag
+where immutable third-party Action source is required.
 
 ## Minimum use from a client
 
@@ -280,7 +318,7 @@ workflows:
         - win-64
 ```
 
-Version `0.11.0` supports exactly one identity per rule: an exact `path`, positive numeric
+Version `0.12.0` supports exactly one identity per rule: an exact `path`, positive numeric
 `id`, or exact display `name`. Path has precedence over ID, and ID over name, if more than
 one distinct rule matches the observed workflow. Rules select `generic`, `ci`, `docs`,
 `conda`, or `release`.
