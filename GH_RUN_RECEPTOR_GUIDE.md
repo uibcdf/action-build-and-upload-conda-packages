@@ -6,7 +6,7 @@ Metadata
 
 - Source repository: `gh-run-receptor`
 - Source document: `standards/GH_RUN_RECEPTOR_GUIDE.md`
-- Source version: `gh-run-receptor@0.13.1`
+- Source version: `gh-run-receptor@0.14.0`
 - Last synced: 2026-09-06
 
 ## What gh-run-receptor is
@@ -43,7 +43,7 @@ successful npm release case from 95 to 84 tokens (11.6%).
 
 ## Supported integration level
 
-Version `0.13.1` is a source preview with:
+Version `0.14.0` is a source preview with:
 
 - `inspect`, `capture`, offline `replay`, and transition-only `watch`;
 - `human`, `llm`, and JSON rendering;
@@ -67,11 +67,13 @@ Version `0.13.1` is a source preview with:
   no source job or log download.
 - explicit `source_facts=verified` and `interpretation=published_not_recomputed` fields in
   successful compact published-report output.
+- deterministic attempt-qualified Action artifacts and fail-closed source-to-reporter
+  discovery through the exact canonical reporter workflow.
 
 Configurable required jobs, documentation phases, or release gates; pattern matching;
-arbitrary rule keys; remote workflow discovery; external registry/archive verification;
-and automatic source-to-reporter discovery are not implemented in `0.13.1`. Restricted-token and
-fork behavior remain release-gate gaps. Cross-platform validation covers installation as a
+arbitrary rule keys; remote workflow discovery; and external registry/archive verification
+are not implemented in `0.14.0`. Restricted-token and fork behavior remain release-gate
+gaps. Cross-platform validation covers installation as a
 GitHub CLI script extension and the composite Action on hosted runners.
 
 ## Installation
@@ -80,14 +82,14 @@ The client requires Git, Python 3.11 through 3.13, and an authenticated GitHub C
 Install the exact preview tag:
 
 ```text
-gh extension install uibcdf/gh-run-receptor --pin 0.13.1
+gh extension install uibcdf/gh-run-receptor --pin 0.14.0
 gh run-receptor --version
 ```
 
 Expected version output:
 
 ```text
-0.13.1
+0.14.0
 ```
 
 Pinning is deliberate. A pinned script extension does not advance through an ordinary
@@ -125,25 +127,37 @@ jobs:
   report:
     runs-on: ubuntu-latest
     steps:
-      - uses: uibcdf/gh-run-receptor@0.13.1
+      - uses: uibcdf/gh-run-receptor@0.14.0
         with:
           run-id: ${{ github.event.workflow_run.id }}
           repository: ${{ github.repository }}
           profile: ci
 ```
 
-The Action emits compact stdout, an escaped bounded job summary, scalar outputs, and a
-`gh-run-receptor.report@1` JSON artifact. It preserves source failure without failing the
+Store this workflow at `.github/workflows/gh-run-receptor-report.yml` to use source-first
+discovery without extra options. The Action emits compact stdout, an escaped bounded job
+summary, scalar outputs, and a `gh-run-receptor.report@1` JSON artifact named with the
+source run ID and attempt. It preserves source failure without failing the
 reporter. Internal reporter errors are fail-open by default; controlled validation may set
 `strict-reporter: "true"`. A same-run invocation observes that run while active and must
 therefore report `PENDING`, not a terminal result. Pin a full commit SHA instead of the tag
 where immutable third-party Action source is required.
 
-Consume a report from the downstream reporter run without recapturing source jobs or logs:
+Consume the canonical report from the original source run ID without recapturing source
+jobs or logs:
+
+```text
+gh run-receptor published-source SOURCE_RUN_ID --repo OWNER/REPO --receptor=llm
+```
+
+The command derives the attempt-qualified artifact name and fails closed unless GitHub
+returns exactly one artifact published by a completed `workflow_run` execution of
+`.github/workflows/gh-run-receptor-report.yml`. If a repository deliberately uses another
+reporter path, pass it with `--reporter-workflow`. The explicit diagnostic fallback is:
 
 ```text
 gh run-receptor published REPORTER_RUN_ID --repo OWNER/REPO \
-  --artifact gh-run-receptor-report --receptor=llm
+  --artifact EXACT_ARTIFACT_NAME --receptor=llm
 ```
 
 Selection is exact. The command bounds and validates the artifact ZIP, verifies a supplied
@@ -335,7 +349,7 @@ workflows:
         - win-64
 ```
 
-Version `0.13.1` supports exactly one identity per rule: an exact `path`, positive numeric
+Version `0.14.0` supports exactly one identity per rule: an exact `path`, positive numeric
 `id`, or exact display `name`. Path has precedence over ID, and ID over name, if more than
 one distinct rule matches the observed workflow. Rules select `generic`, `ci`, `docs`,
 `conda`, or `release`.
