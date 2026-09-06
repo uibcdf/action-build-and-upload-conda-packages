@@ -6,7 +6,7 @@ Metadata
 
 - Source repository: `gh-run-receptor`
 - Source document: `standards/GH_RUN_RECEPTOR_GUIDE.md`
-- Source version: `gh-run-receptor@0.14.0`
+- Source version: `gh-run-receptor@0.15.0`
 - Last synced: 2026-09-06
 
 ## What gh-run-receptor is
@@ -43,7 +43,7 @@ successful npm release case from 95 to 84 tokens (11.6%).
 
 ## Supported integration level
 
-Version `0.14.0` is a source preview with:
+Version `0.15.0` is a source preview with:
 
 - `inspect`, `capture`, offline `replay`, and transition-only `watch`;
 - `human`, `llm`, and JSON rendering;
@@ -69,11 +69,16 @@ Version `0.14.0` is a source preview with:
   successful compact published-report output.
 - deterministic attempt-qualified Action artifacts and fail-closed source-to-reporter
   discovery through the exact canonical reporter workflow.
+- trusted inline Action `config@1` rules using the same parser and interpretation path as
+  repository policy, with default-branch caller provenance;
+- `report-ready` and `error-category` outputs for bounded fail-open automation;
+- hosted public-permission, same-repository pull-request rejection, and canonical inline
+  `workflow_run` validation.
 
 Configurable required jobs, documentation phases, or release gates; pattern matching;
 arbitrary rule keys; remote workflow discovery; and external registry/archive verification
-are not implemented in `0.14.0`. Restricted-token and fork behavior remain release-gate
-gaps. Cross-platform validation covers installation as a
+are not implemented in `0.15.0`. Private-repository and fork token behavior remains
+unclaimed. Cross-platform validation covers installation as a
 GitHub CLI script extension and the composite Action on hosted runners.
 
 ## Installation
@@ -82,14 +87,14 @@ The client requires Git, Python 3.11 through 3.13, and an authenticated GitHub C
 Install the exact preview tag:
 
 ```text
-gh extension install uibcdf/gh-run-receptor --pin 0.14.0
+gh extension install uibcdf/gh-run-receptor --pin 0.15.0
 gh run-receptor --version
 ```
 
 Expected version output:
 
 ```text
-0.14.0
+0.15.0
 ```
 
 Pinning is deliberate. A pinned script extension does not advance through an ordinary
@@ -127,7 +132,7 @@ jobs:
   report:
     runs-on: ubuntu-latest
     steps:
-      - uses: uibcdf/gh-run-receptor@0.14.0
+      - uses: uibcdf/gh-run-receptor@0.15.0
         with:
           run-id: ${{ github.event.workflow_run.id }}
           repository: ${{ github.repository }}
@@ -142,6 +147,34 @@ reporter. Internal reporter errors are fail-open by default; controlled validati
 `strict-reporter: "true"`. A same-run invocation observes that run while active and must
 therefore report `PENDING`, not a terminal result. Pin a full commit SHA instead of the tag
 where immutable third-party Action source is required.
+
+For a small dedicated reporter, the same complete configuration accepted by `config check`
+may be placed beside the Action call:
+
+```yaml
+      - uses: uibcdf/gh-run-receptor@0.15.0
+        with:
+          run-id: ${{ github.event.workflow_run.id }}
+          repository: ${{ github.repository }}
+          profile: auto
+          rules: |
+            schema_version: 1
+            workflows:
+              - match:
+                  path: .github/workflows/build_conda.yaml
+                profile: conda
+                settings:
+                  expected_platforms: [linux-64, osx-arm64, win-64]
+```
+
+Inline rules are accepted only when GitHub context proves that the caller workflow runs
+from the same repository's default branch. Pull-request refs, other branches, tags,
+cross-repository evaluation, and incomplete provenance are rejected before evidence
+acquisition. Use repository configuration when rules are shared or extensive. On success,
+`report-ready` is `true` and `error-category` is empty; on a fail-open reporter error they
+provide `false` and a bounded category. The canonical workflow should retain explicit
+`actions: read` and `contents: read`. Public probes may succeed after removing a scope and
+do not establish private-repository or fork requirements.
 
 Consume the canonical report from the original source run ID without recapturing source
 jobs or logs:
@@ -349,7 +382,7 @@ workflows:
         - win-64
 ```
 
-Version `0.14.0` supports exactly one identity per rule: an exact `path`, positive numeric
+Version `0.15.0` supports exactly one identity per rule: an exact `path`, positive numeric
 `id`, or exact display `name`. Path has precedence over ID, and ID over name, if more than
 one distinct rule matches the observed workflow. Rules select `generic`, `ci`, `docs`,
 `conda`, or `release`.
