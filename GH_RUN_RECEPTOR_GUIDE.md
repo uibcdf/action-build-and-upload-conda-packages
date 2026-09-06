@@ -6,7 +6,7 @@ Metadata
 
 - Source repository: `gh-run-receptor`
 - Source document: `standards/GH_RUN_RECEPTOR_GUIDE.md`
-- Source version: `gh-run-receptor@0.12.0`
+- Source version: `gh-run-receptor@0.13.0`
 - Last synced: 2026-09-06
 
 ## What gh-run-receptor is
@@ -43,7 +43,7 @@ successful npm release case from 95 to 84 tokens (11.6%).
 
 ## Supported integration level
 
-Version `0.12.0` is a source preview with:
+Version `0.13.0` is a source preview with:
 
 - `inspect`, `capture`, offline `replay`, and transition-only `watch`;
 - `human`, `llm`, and JSON rendering;
@@ -63,10 +63,12 @@ Version `0.12.0` is a source preview with:
 - a composite GitHub Action with bounded log, job summary, scalar outputs, canonical JSON
   artifact, and exact source provenance;
 - checkout-local and remote-source Action validation on Ubuntu, macOS, and Windows.
+- bounded published-report consumption with fresh terminal source-fact verification and
+  no source job or log download.
 
 Configurable required jobs, documentation phases, or release gates; pattern matching;
 arbitrary rule keys; remote workflow discovery; external registry/archive verification;
-and a reusable aggregator workflow are not implemented in `0.12.0`. Restricted-token and
+and automatic source-to-reporter discovery are not implemented in `0.13.0`. Restricted-token and
 fork behavior remain release-gate gaps. Cross-platform validation covers installation as a
 GitHub CLI script extension and the composite Action on hosted runners.
 
@@ -76,14 +78,14 @@ The client requires Git, Python 3.11 through 3.13, and an authenticated GitHub C
 Install the exact preview tag:
 
 ```text
-gh extension install uibcdf/gh-run-receptor --pin 0.12.0
+gh extension install uibcdf/gh-run-receptor --pin 0.13.0
 gh run-receptor --version
 ```
 
 Expected version output:
 
 ```text
-0.12.0
+0.13.0
 ```
 
 Pinning is deliberate. A pinned script extension does not advance through an ordinary
@@ -121,7 +123,7 @@ jobs:
   report:
     runs-on: ubuntu-latest
     steps:
-      - uses: uibcdf/gh-run-receptor@0.12.0
+      - uses: uibcdf/gh-run-receptor@0.13.0
         with:
           run-id: ${{ github.event.workflow_run.id }}
           repository: ${{ github.repository }}
@@ -134,6 +136,19 @@ reporter. Internal reporter errors are fail-open by default; controlled validati
 `strict-reporter: "true"`. A same-run invocation observes that run while active and must
 therefore report `PENDING`, not a terminal result. Pin a full commit SHA instead of the tag
 where immutable third-party Action source is required.
+
+Consume a report from the downstream reporter run without recapturing source jobs or logs:
+
+```text
+gh run-receptor published REPORTER_RUN_ID --repo OWNER/REPO \
+  --artifact gh-run-receptor-report --receptor=llm
+```
+
+Selection is exact. The command bounds and validates the artifact ZIP, verifies a supplied
+GitHub digest, and compares source repository, run ID, attempt, SHA, completed status,
+conclusion, and URL with a fresh source-run API response. It adds an explicit warning that
+profile interpretation was published rather than independently recomputed. Use native
+`inspect SOURCE_RUN_ID` when the artifact is absent, expired, or does not cover the decision.
 
 ## Minimum use from a client
 
@@ -318,7 +333,7 @@ workflows:
         - win-64
 ```
 
-Version `0.12.0` supports exactly one identity per rule: an exact `path`, positive numeric
+Version `0.13.0` supports exactly one identity per rule: an exact `path`, positive numeric
 `id`, or exact display `name`. Path has precedence over ID, and ID over name, if more than
 one distinct rule matches the observed workflow. Rules select `generic`, `ci`, `docs`,
 `conda`, or `release`.
