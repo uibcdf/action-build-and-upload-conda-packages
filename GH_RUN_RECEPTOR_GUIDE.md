@@ -6,7 +6,7 @@ Metadata
 
 - Source repository: `gh-run-receptor`
 - Source document: `standards/GH_RUN_RECEPTOR_GUIDE.md`
-- Source version: `gh-run-receptor@0.16.0`
+- Source version: `gh-run-receptor@0.18.0`
 - Last synced: 2026-09-06
 
 ## What gh-run-receptor is
@@ -43,7 +43,7 @@ successful npm release case from 95 to 84 tokens (11.6%).
 
 ## Supported integration level
 
-Version `0.16.0` is a source preview with:
+Version `0.18.0` is a source preview with:
 
 - `inspect`, `capture`, offline `replay`, and transition-only `watch`;
 - `human`, `llm`, and JSON rendering;
@@ -74,10 +74,12 @@ Version `0.16.0` is a source preview with:
 - `report-ready` and `error-category` outputs for bounded fail-open automation;
 - hosted public-permission, same-repository pull-request rejection, and canonical inline
   `workflow_run` validation.
+- a draft-first publication path for exact-tag wheel, source-distribution, and checksum
+  assets with independent public-release revalidation.
 
 Configurable required jobs, documentation phases, or release gates; pattern matching;
 arbitrary rule keys; remote workflow discovery; and external registry/archive verification
-are not implemented in `0.16.0`. Private-repository and fork token behavior remains
+are not implemented in `0.18.0`. Private-repository and fork token behavior remains
 unclaimed. Cross-platform validation covers installation as a
 GitHub CLI script extension and the composite Action on hosted runners.
 
@@ -91,14 +93,14 @@ need GitHub CLI.
 Install the exact preview tag:
 
 ```text
-gh extension install uibcdf/gh-run-receptor --pin 0.16.0
+gh extension install uibcdf/gh-run-receptor --pin 0.18.0
 gh run-receptor --version
 ```
 
 Expected version output:
 
 ```text
-0.16.0
+0.18.0
 ```
 
 Pinning is deliberate. A pinned script extension does not advance through an ordinary
@@ -136,7 +138,7 @@ jobs:
   report:
     runs-on: ubuntu-latest
     steps:
-      - uses: uibcdf/gh-run-receptor@0.16.0
+      - uses: uibcdf/gh-run-receptor@0.18.0
         with:
           run-id: ${{ github.event.workflow_run.id }}
           repository: ${{ github.repository }}
@@ -156,7 +158,7 @@ For a small dedicated reporter, the same complete configuration accepted by `con
 may be placed beside the Action call:
 
 ```yaml
-      - uses: uibcdf/gh-run-receptor@0.16.0
+      - uses: uibcdf/gh-run-receptor@0.18.0
         with:
           run-id: ${{ github.event.workflow_run.id }}
           repository: ${{ github.repository }}
@@ -386,7 +388,7 @@ workflows:
         - win-64
 ```
 
-Version `0.16.0` supports exactly one identity per rule: an exact `path`, positive numeric
+Version `0.18.0` supports exactly one identity per rule: an exact `path`, positive numeric
 `id`, or exact display `name`. Path has precedence over ID, and ID over name, if more than
 one distinct rule matches the observed workflow. Rules select `generic`, `ci`, `docs`,
 `conda`, or `release`.
