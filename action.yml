@@ -104,6 +104,10 @@ inputs:
     description: "Automatically create a GitHub release if a tag was pushed."
     required: false
     default: 'false'
+  evidence_matrix_index:
+    description: Zero-based matrix index used to keep producer-evidence artifacts unique.
+    required: false
+    default: ''
 outputs:
   paths:
     description: Paths for the uploaded packages, in the format 'path1 path2 ... pathN'. Empty when 'upload' is false.
@@ -111,6 +115,12 @@ outputs:
   built_paths:
     description: Paths for every package built or converted, uploaded or not, in the format 'path1 path2 ... pathN'.
     value: ${{steps.packages-compilation.outputs.built_paths}}
+  evidence_path:
+    description: Path to a gh-run-receptor.events@1 document describing observed package results.
+    value: ${{steps.producer-evidence.outputs.path}}
+  evidence_artifact_name:
+    description: Attempt-qualified artifact name reserved for uploading evidence_path.
+    value: ${{steps.producer-evidence.outputs.artifact_name}}
 
 runs:
   using: "composite"
@@ -338,6 +348,47 @@ runs:
           echo "::error::$failed of ${#package_paths[@]} uploads failed. Those packages were not published."
           exit 1
         fi
+    - name: Write structured producer evidence
+      id: producer-evidence
+      if: always() && steps.packages-compilation.outcome == 'success'
+      shell: bash
+      env:
+        BUILT_PATHS: ${{ steps.packages-compilation.outputs.built_paths }}
+        UPLOADED_PATHS: ${{ steps.packages-uploading.outputs.paths }}
+        UPLOAD_REQUESTED: ${{ inputs.upload }}
+        PRODUCER_REPOSITORY: ${{ github.action_repository }}
+        PRODUCER_REF: ${{ github.action_ref }}
+        SUBJECT_REPOSITORY: ${{ github.repository }}
+        SUBJECT_RUN_ID: ${{ github.run_id }}
+        SUBJECT_RUN_ATTEMPT: ${{ github.run_attempt }}
+        SUBJECT_HEAD_SHA: ${{ github.sha }}
+        SUBJECT_JOB_KEY: ${{ github.job }}
+        SUBJECT_MATRIX_INDEX: ${{ inputs.evidence_matrix_index }}
+      run: |
+        set -euo pipefail
+        artifact_index="${SUBJECT_MATRIX_INDEX:-0}"
+        producer_ref="${PRODUCER_REF:-local}"
+        output="$RUNNER_TEMP/gh-run-receptor-events-$SUBJECT_RUN_ID-$SUBJECT_RUN_ATTEMPT-$SUBJECT_JOB_KEY-$artifact_index.json"
+        artifact_name="gh-run-receptor-events-v1-$SUBJECT_RUN_ID-$SUBJECT_RUN_ATTEMPT-$SUBJECT_JOB_KEY-$artifact_index"
+        matrix_arguments=()
+        if [ -n "$SUBJECT_MATRIX_INDEX" ]; then
+          matrix_arguments=(--matrix-index "$SUBJECT_MATRIX_INDEX")
+        fi
+        python "$GITHUB_ACTION_PATH/scripts/write_receptor_events.py" \
+          --built-paths "$BUILT_PATHS" \
+          --uploaded-paths "$UPLOADED_PATHS" \
+          --upload-requested "$UPLOAD_REQUESTED" \
+          --producer-repository "$PRODUCER_REPOSITORY" \
+          --producer-ref "$producer_ref" \
+          --repository "$SUBJECT_REPOSITORY" \
+          --run-id "$SUBJECT_RUN_ID" \
+          --run-attempt "$SUBJECT_RUN_ATTEMPT" \
+          --head-sha "$SUBJECT_HEAD_SHA" \
+          --job-key "$SUBJECT_JOB_KEY" \
+          "${matrix_arguments[@]}" \
+          --output "$output"
+        echo "path=$output" >> "$GITHUB_OUTPUT"
+        echo "artifact_name=$artifact_name" >> "$GITHUB_OUTPUT"
     - name: Create GitHub Release
       if: inputs.github_release == 'true' && startsWith(github.ref, 'refs/tags/')
       shell: bash

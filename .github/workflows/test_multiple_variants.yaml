@@ -36,6 +36,11 @@ jobs:
           meta_yaml_dir: tests/fixtures/multiple-python-variants
           upload: false
           conda_build_args: --no-test
+          platform_linux-64: ${{ runner.os != 'Linux' }}
+          platform_osx-64: true
+          platform_osx-arm64: true
+          platform_win-64: ${{ runner.os != 'Windows' }}
+          evidence_matrix_index: ${{ strategy.job-index }}
 
       - name: Verify both variants
         shell: bash -el {0}
@@ -44,14 +49,23 @@ jobs:
         run: |
           set -euo pipefail
           read -r -a built_paths <<< "$BUILT_PATHS"
-          if [[ "${#built_paths[@]}" -ne 2 ]]; then
-            echo "Expected two built packages, found ${#built_paths[@]}: $BUILT_PATHS"
+          if [[ "${#built_paths[@]}" -ne 8 ]]; then
+            echo "Expected eight built packages, found ${#built_paths[@]}: $BUILT_PATHS"
             exit 1
+          fi
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            host_platform=win-64
+          else
+            host_platform=linux-64
           fi
           test_root="$(mktemp -d -t variant-tests-XXXXXXXXXX)"
           index=0
           for package_path in "${built_paths[@]}"; do
             test -f "$package_path"
+            platform="$(basename "$(dirname "$package_path")")"
+            if [[ "$platform" != "$host_platform" ]]; then
+              continue
+            fi
             test_prefix="$test_root/env-$index"
             if [[ "$package_path" == *"py311"* ]]; then
               python_version=3.11
@@ -63,5 +77,24 @@ jobs:
             conda run --prefix "$test_prefix" python -c "import action_multiple_variants_fixture"
             index=$((index + 1))
           done
+          test "$index" -eq 2
+          for platform in linux-64 osx-64 osx-arm64 win-64; do
+            test "$(find "$(dirname "${built_paths[0]}")/.." -path "*/$platform/*" -type f | wc -l)" -eq 2
+          done
           [[ "$BUILT_PATHS" == *"py311"* ]]
           [[ "$BUILT_PATHS" == *"py312"* ]]
+
+      - name: Verify structured producer evidence
+        shell: bash
+        env:
+          EVIDENCE_PATH: ${{ steps.build.outputs.evidence_path }}
+        run: |
+          python -c "import json, os, pathlib; value=json.loads(pathlib.Path(os.environ['EVIDENCE_PATH']).read_text()); assert value['schema'] == 'gh-run-receptor.events@1'; assert len(value['events']) == 8; assert {event['platform'] for event in value['events']} == {'linux-64', 'osx-64', 'osx-arm64', 'win-64'}; assert all(event['upload'] == 'not_requested' for event in value['events'])"
+
+      - name: Upload structured producer evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.build.outputs.evidence_artifact_name }}
+          path: ${{ steps.build.outputs.evidence_path }}
+          if-no-files-found: error
+          retention-days: 7

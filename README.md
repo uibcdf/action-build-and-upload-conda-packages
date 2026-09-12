@@ -240,6 +240,7 @@ jobs:
 | `conda_convert_args` | [Additional command line arguments](#additional-command-line-arguments) to pass to the `conda convert` command. | Optional |  |
 | `anaconda_upload_args` | [Additional command line arguments](#additional-command-line-arguments) to pass to the `anaconda upload` command. | Optional |  |
 | `github_release` | Create a GitHub release for the pushed tag, after the packages are built and uploaded. Requires the job to grant `contents: write`. Does nothing when the workflow was not triggered by a tag. | Optional | `false` |
+| `evidence_matrix_index` | Zero-based matrix index used in producer-evidence identity. Pass `${{ strategy.job-index }}` from matrix workflows; non-matrix workflows leave it empty. | Optional | empty |
 
 ### Additional command line arguments
 This action, internally, calls the following commands:
@@ -277,6 +278,29 @@ Refer to the [Pass additional command-line arguments example](#pass-additional-c
 | --- | --- |
 | paths | Space-separated paths for the packages that were **uploaded**, in the format `path1 path2 ... pathN`. Empty when `upload` is `false`. |
 | built_paths | Space-separated paths for every package **built or converted**, whether or not it was uploaded. Available even when `upload` is `false`. |
+| evidence_path | Path to a bounded `gh-run-receptor.events@1` JSON document derived from the package files and upload results observed by this invocation. |
+| evidence_artifact_name | Attempt-qualified reserved name for uploading `evidence_path` so gh-run-receptor can discover it. |
+
+The Action writes producer evidence after package compilation, including when an upload
+step failed after some successful uploads. It records file digests, actual Conda output
+subdirectories, build success, and per-package upload results. It does not query Anaconda
+after upload and therefore does not claim independent registry verification.
+
+To make the document available to gh-run-receptor, upload it explicitly. The matrix index
+keeps artifact names unique across matrix jobs:
+
+```yaml
+- name: Upload structured producer evidence
+  uses: actions/upload-artifact@v4
+  with:
+    name: ${{ steps.conda-build-and-upload.outputs.evidence_artifact_name }}
+    path: ${{ steps.conda-build-and-upload.outputs.evidence_path }}
+    if-no-files-found: error
+    retention-days: 7
+```
+
+Artifact upload and retention remain visible workflow policy rather than a hidden side
+effect of this Action.
 
 The output paths can be useful for later jobs, for example to [create a GitHub release with the built packages as artifacs](#create-a-gitHub-release-with-the-built-packages-as-artifacs-example).
 
