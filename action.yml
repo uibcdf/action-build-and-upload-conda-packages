@@ -374,7 +374,7 @@ runs:
         producer_repository="${PRODUCER_REPOSITORY:-$SUBJECT_REPOSITORY}"
         producer_ref="${PRODUCER_REF:-local}"
         uploaded_paths_json="${UPLOADED_PATHS_JSON:-[]}"
-        output="$RUNNER_TEMP/gh-run-receptor-events-$SUBJECT_RUN_ID-$SUBJECT_RUN_ATTEMPT-$SUBJECT_JOB_KEY-$artifact_index.json"
+        output="$RUNNER_TEMP/gh-run-receptor-events-$SUBJECT_RUN_ID-$SUBJECT_RUN_ATTEMPT-$SUBJECT_JOB_KEY-$artifact_index/gh-run-receptor-events.json"
         artifact_name="gh-run-receptor-events-v1-$SUBJECT_RUN_ID-$SUBJECT_RUN_ATTEMPT-$SUBJECT_JOB_KEY-$artifact_index"
         matrix_arguments=()
         if [ -n "$SUBJECT_MATRIX_INDEX" ]; then

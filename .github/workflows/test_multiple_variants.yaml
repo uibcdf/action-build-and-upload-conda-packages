@@ -95,7 +95,7 @@ jobs:
         env:
           EVIDENCE_PATH: ${{ steps.build.outputs.evidence_path }}
         run: |
-          python -c "import json, os, pathlib; value=json.loads(pathlib.Path(os.environ['EVIDENCE_PATH']).read_text()); assert value['schema'] == 'gh-run-receptor.events@1'; assert value['producer']['repository']; assert value['producer']['ref']; assert len(value['events']) == 8; assert {event['platform'] for event in value['events']} == {'linux-64', 'osx-64', 'osx-arm64', 'win-64'}; assert all(event['upload'] == 'not_requested' for event in value['events'])"
+          python -c "import json, os, pathlib; path=pathlib.Path(os.environ['EVIDENCE_PATH']); assert path.name == 'gh-run-receptor-events.json'; value=json.loads(path.read_text()); assert value['schema'] == 'gh-run-receptor.events@1'; assert value['producer']['repository']; assert value['producer']['ref']; assert len(value['events']) == 8; assert {event['platform'] for event in value['events']} == {'linux-64', 'osx-64', 'osx-arm64', 'win-64'}; assert all(event['upload'] == 'not_requested' for event in value['events'])"
 
       - name: Upload structured producer evidence
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
