@@ -45,6 +45,19 @@ This GitHub Action was originally developed by the [Computational Biology and Dr
 Mexico City Children's Hospital Federico Gómez][UIBCDF]. For the complete list of contributors, refer to the [contributors section](https://github.com/uibcdf/action-build-and-upload-conda-packages/graphs/contributors).<br>
 Explore more GitHub Actions developed by UIBCDF at the [UIBCDF GitHub Organization page](https://github.com/search?q=topic%3Agithub-actions+org%3Auibcdf&type=Repositories).
 
+## What changed in v2.1.0
+
+The action can emit bounded `gh-run-receptor.events@1` evidence from package files and
+observed upload results. The new `evidence_path` and `evidence_artifact_name` outputs let
+the caller upload an attempt-qualified document explicitly, keeping retention and storage
+policy visible in the workflow. Matrix callers can pass `evidence_matrix_index` to keep
+artifact identities unique.
+
+Evidence generation hashes every package and preserves paths across Windows and Unix by
+using internal JSON transport. A hosted integration gate builds and verifies two Python
+variants for four internal Conda platforms on both Ubuntu and Windows. Producer upload
+success remains distinct from independent Anaconda registry verification.
+
 ## What changed in v2.0.3
 
 The action no longer runs a second complete `conda build --output` render after a
