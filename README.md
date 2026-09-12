@@ -291,7 +291,7 @@ keeps artifact names unique across matrix jobs:
 
 ```yaml
 - name: Upload structured producer evidence
-  uses: actions/upload-artifact@v4
+  uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
   with:
     name: ${{ steps.conda-build-and-upload.outputs.evidence_artifact_name }}
     path: ${{ steps.conda-build-and-upload.outputs.evidence_path }}
@@ -300,7 +300,9 @@ keeps artifact names unique across matrix jobs:
 ```
 
 Artifact upload and retention remain visible workflow policy rather than a hidden side
-effect of this Action.
+effect of this Action. `evidence_path` always ends in the contract member name
+`gh-run-receptor-events.json`; keep that file name unchanged when assembling an artifact
+without `actions/upload-artifact`.
 
 The output paths can be useful for later jobs, for example to [create a GitHub release with the built packages as artifacs](#create-a-gitHub-release-with-the-built-packages-as-artifacs-example).
 
