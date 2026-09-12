@@ -80,7 +80,7 @@ jobs:
           done
           test "$index" -eq 2
           for platform in linux-64 osx-64 osx-arm64 win-64; do
-            test "$(find "$(dirname "${built_paths[0]}")/.." -path "*/$platform/*" -type f | wc -l)" -eq 2
+            test "$(find "$(dirname "${built_paths[0]}")/.." -path "*/$platform/*" -type f -name '*.tar.bz2' | wc -l)" -eq 2
           done
           [[ "$BUILT_PATHS" == *"py311"* ]]
           [[ "$BUILT_PATHS" == *"py312"* ]]
