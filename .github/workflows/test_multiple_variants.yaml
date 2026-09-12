@@ -35,7 +35,8 @@ jobs:
         with:
           meta_yaml_dir: tests/fixtures/multiple-python-variants
           upload: false
-          conda_build_args: --no-test
+          # conda convert does not support the modern .conda archive format.
+          conda_build_args: --no-test --package-format 1
           platform_linux-64: ${{ runner.os != 'Linux' }}
           platform_osx-64: true
           platform_osx-arm64: true
@@ -92,7 +93,7 @@ jobs:
           python -c "import json, os, pathlib; value=json.loads(pathlib.Path(os.environ['EVIDENCE_PATH']).read_text()); assert value['schema'] == 'gh-run-receptor.events@1'; assert len(value['events']) == 8; assert {event['platform'] for event in value['events']} == {'linux-64', 'osx-64', 'osx-arm64', 'win-64'}; assert all(event['upload'] == 'not_requested' for event in value['events'])"
 
       - name: Upload structured producer evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: ${{ steps.build.outputs.evidence_artifact_name }}
           path: ${{ steps.build.outputs.evidence_path }}
