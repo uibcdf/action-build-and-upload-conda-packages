@@ -295,6 +295,8 @@ runs:
           built_paths+=("$line")
         done < <(find "$out_dir" -type f \( -name '*.tar.bz2' -o -name '*.conda' \))
         echo "built_paths=${built_paths[*]}" >> "$GITHUB_OUTPUT"
+        built_paths_json="$(python -c 'import json, sys; print(json.dumps(sys.argv[1:]))' "${built_paths[@]}")"
+        echo "built_paths_json=$built_paths_json" >> "$GITHUB_OUTPUT"
         echo "Packages available after compilation and conversion:"
         printf '  %s\n' "${built_paths[@]}"
         echo "::endgroup::"
@@ -340,6 +342,8 @@ runs:
           fi
         done
         echo "paths=${paths[*]}" >> "$GITHUB_OUTPUT"
+        paths_json="$(python -c 'import json, sys; print(json.dumps(sys.argv[1:]))' "${paths[@]}")"
+        echo "paths_json=$paths_json" >> "$GITHUB_OUTPUT"
         echo "::endgroup::"
         # `anaconda upload` exits non-zero on failure, but the loop used to discard that,
         # and the step's status came from the last echo. An expired token therefore looked
@@ -353,8 +357,8 @@ runs:
       if: always() && steps.packages-compilation.outcome == 'success'
       shell: bash
       env:
-        BUILT_PATHS: ${{ steps.packages-compilation.outputs.built_paths }}
-        UPLOADED_PATHS: ${{ steps.packages-uploading.outputs.paths }}
+        BUILT_PATHS_JSON: ${{ steps.packages-compilation.outputs.built_paths_json }}
+        UPLOADED_PATHS_JSON: ${{ steps.packages-uploading.outputs.paths_json }}
         UPLOAD_REQUESTED: ${{ inputs.upload }}
         PRODUCER_REPOSITORY: ${{ github.action_repository }}
         PRODUCER_REF: ${{ github.action_ref }}
@@ -367,7 +371,9 @@ runs:
       run: |
         set -euo pipefail
         artifact_index="${SUBJECT_MATRIX_INDEX:-0}"
+        producer_repository="${PRODUCER_REPOSITORY:-$SUBJECT_REPOSITORY}"
         producer_ref="${PRODUCER_REF:-local}"
+        uploaded_paths_json="${UPLOADED_PATHS_JSON:-[]}"
         output="$RUNNER_TEMP/gh-run-receptor-events-$SUBJECT_RUN_ID-$SUBJECT_RUN_ATTEMPT-$SUBJECT_JOB_KEY-$artifact_index.json"
         artifact_name="gh-run-receptor-events-v1-$SUBJECT_RUN_ID-$SUBJECT_RUN_ATTEMPT-$SUBJECT_JOB_KEY-$artifact_index"
         matrix_arguments=()
@@ -375,10 +381,10 @@ runs:
           matrix_arguments=(--matrix-index "$SUBJECT_MATRIX_INDEX")
         fi
         python "$GITHUB_ACTION_PATH/scripts/write_receptor_events.py" \
-          --built-paths "$BUILT_PATHS" \
-          --uploaded-paths "$UPLOADED_PATHS" \
+          --built-paths-json "$BUILT_PATHS_JSON" \
+          --uploaded-paths-json "$uploaded_paths_json" \
           --upload-requested "$UPLOAD_REQUESTED" \
-          --producer-repository "$PRODUCER_REPOSITORY" \
+          --producer-repository "$producer_repository" \
           --producer-ref "$producer_ref" \
           --repository "$SUBJECT_REPOSITORY" \
           --run-id "$SUBJECT_RUN_ID" \

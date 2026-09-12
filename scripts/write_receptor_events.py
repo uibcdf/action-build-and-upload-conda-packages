@@ -6,7 +6,6 @@ import argparse
 import hashlib
 import json
 import re
-import shlex
 from pathlib import Path
 
 _PLATFORM = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+){0,3}")
@@ -21,14 +20,22 @@ def _python_versions(filename: str) -> list[str]:
     return [f"{digits[0]}.{int(digits[1:])}"]
 
 
-def _paths(value: str) -> list[Path]:
-    return [Path(item).resolve() for item in shlex.split(value)]
+def _paths(value: str, label: str) -> list[Path]:
+    try:
+        items = json.loads(value)
+    except json.JSONDecodeError as error:
+        raise ValueError(f"{label} is not valid JSON: {error}") from error
+    if not isinstance(items, list) or not all(
+        isinstance(item, str) and item for item in items
+    ):
+        raise ValueError(f"{label} must be a JSON array of non-empty paths")
+    return [Path(item).resolve() for item in items]
 
 
 def build_document(
     *,
-    built_paths: str,
-    uploaded_paths: str,
+    built_paths_json: str,
+    uploaded_paths_json: str,
     upload_requested: bool,
     producer_repository: str,
     producer_ref: str,
@@ -40,8 +47,8 @@ def build_document(
     matrix_index: int | None,
 ) -> dict:
     """Building one deterministic event document from observed package files."""
-    built = _paths(built_paths)
-    uploaded = set(_paths(uploaded_paths))
+    built = _paths(built_paths_json, "built paths")
+    uploaded = set(_paths(uploaded_paths_json, "uploaded paths"))
     if not built:
         raise ValueError("no built package paths were supplied")
     events = []
@@ -91,8 +98,8 @@ def build_document(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--built-paths", required=True)
-    parser.add_argument("--uploaded-paths", default="")
+    parser.add_argument("--built-paths-json", required=True)
+    parser.add_argument("--uploaded-paths-json", default="[]")
     parser.add_argument("--upload-requested", choices=("true", "false"), required=True)
     parser.add_argument("--producer-repository", required=True)
     parser.add_argument("--producer-ref", required=True)
@@ -105,8 +112,8 @@ def main() -> int:
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     document = build_document(
-        built_paths=args.built_paths,
-        uploaded_paths=args.uploaded_paths,
+        built_paths_json=args.built_paths_json,
+        uploaded_paths_json=args.uploaded_paths_json,
         upload_requested=args.upload_requested == "true",
         producer_repository=args.producer_repository,
         producer_ref=args.producer_ref,

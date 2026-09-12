@@ -6,6 +6,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from scripts.write_receptor_events import _paths
+
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts/write_receptor_events.py"
 
@@ -47,6 +49,20 @@ class ProducerEventTests(unittest.TestCase):
             self.assertEqual(document["events"][0]["upload"], "not_requested")
             self.assertNotIn("python_versions", document["events"][0])
 
+    def test_writer_preserves_paths_with_spaces_and_windows_separators(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "path with spaces"
+            package = root / "linux-64" / "example-1.0-py311_0.conda"
+            package.parent.mkdir(parents=True)
+            package.write_bytes(b"linux")
+
+            document = self._run(root, [package], [], upload=False)
+
+            self.assertEqual(document["events"][0]["artifact"], package.name)
+            windows_path = r"D:\runner temp\win-64\example-1.0-py311_0.conda"
+            parsed = str(_paths(json.dumps([windows_path]), "built paths")[0])
+            self.assertGreaterEqual(parsed.count("\\"), 3)
+
     def test_non_matrix_invocation_keeps_matrix_identity_unknown(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -80,10 +96,10 @@ class ProducerEventTests(unittest.TestCase):
         command = [
             sys.executable,
             str(SCRIPT),
-            "--built-paths",
-            " ".join(str(path) for path in built),
-            "--uploaded-paths",
-            " ".join(str(path) for path in uploaded),
+            "--built-paths-json",
+            json.dumps([str(path) for path in built]),
+            "--uploaded-paths-json",
+            json.dumps([str(path) for path in uploaded]),
             "--upload-requested",
             str(upload).lower(),
             "--producer-repository",

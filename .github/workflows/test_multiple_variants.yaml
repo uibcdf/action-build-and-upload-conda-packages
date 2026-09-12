@@ -79,8 +79,13 @@ jobs:
             index=$((index + 1))
           done
           test "$index" -eq 2
+          declare -A platform_counts=()
+          for package_path in "${built_paths[@]}"; do
+            platform="$(basename "$(dirname "$package_path")")"
+            platform_counts[$platform]=$(( ${platform_counts[$platform]:-0} + 1 ))
+          done
           for platform in linux-64 osx-64 osx-arm64 win-64; do
-            test "$(find "$(dirname "${built_paths[0]}")/.." -path "*/$platform/*" -type f -name '*.tar.bz2' | wc -l)" -eq 2
+            test "${platform_counts[$platform]:-0}" -eq 2
           done
           [[ "$BUILT_PATHS" == *"py311"* ]]
           [[ "$BUILT_PATHS" == *"py312"* ]]
@@ -90,7 +95,7 @@ jobs:
         env:
           EVIDENCE_PATH: ${{ steps.build.outputs.evidence_path }}
         run: |
-          python -c "import json, os, pathlib; value=json.loads(pathlib.Path(os.environ['EVIDENCE_PATH']).read_text()); assert value['schema'] == 'gh-run-receptor.events@1'; assert len(value['events']) == 8; assert {event['platform'] for event in value['events']} == {'linux-64', 'osx-64', 'osx-arm64', 'win-64'}; assert all(event['upload'] == 'not_requested' for event in value['events'])"
+          python -c "import json, os, pathlib; value=json.loads(pathlib.Path(os.environ['EVIDENCE_PATH']).read_text()); assert value['schema'] == 'gh-run-receptor.events@1'; assert value['producer']['repository']; assert value['producer']['ref']; assert len(value['events']) == 8; assert {event['platform'] for event in value['events']} == {'linux-64', 'osx-64', 'osx-arm64', 'win-64'}; assert all(event['upload'] == 'not_requested' for event in value['events'])"
 
       - name: Upload structured producer evidence
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
