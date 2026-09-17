@@ -11,8 +11,8 @@ Metadata
 
 - Source repository: `gh-run-receptor`
 - Source document: `standards/GH_RUN_RECEPTOR_GUIDE.md`
-- Source version: `gh-run-receptor@0.20.0`
-- Last synced: 2026-09-14
+- Source version: `gh-run-receptor@0.21.0`
+- Last synced: 2026-09-17
 
 ## What gh-run-receptor is
 
@@ -48,7 +48,7 @@ successful npm release case from 95 to 84 tokens (11.6%).
 
 ## Supported integration level
 
-Version `0.20.0` is a source preview with:
+Version `0.21.0` is a source preview with:
 
 - `inspect`, `capture`, offline `replay`, and transition-only `watch`;
 - `human`, `llm`, and JSON rendering;
@@ -85,16 +85,18 @@ Version `0.20.0` is a source preview with:
   artifact-inventory, and matrix-coverage deltas;
 - strict opt-in comparison policies that distinguish pass, measured violation, and
   insufficient evidence;
-- one registry for eight versioned serialized boundaries, with all current v1 schema
+- one registry for nine versioned serialized boundaries, with all current v1 schema
   resources frozen against their first publishing release;
 - strict bounded `events@1` producer evidence for Action-internal Conda matrices, validated
   end to end on hosted Ubuntu and Windows and through deterministic sanitized replay;
+- bounded offline and remote `aggregate` over two to fifty explicit run reports, with
+  independent source truth, conservative outcome precedence, and deterministic rendering;
 - a draft-first publication path for exact-tag wheel, source-distribution, and checksum
   assets with independent public-release revalidation.
 
 Configurable required jobs, documentation phases, or release gates; pattern matching;
 arbitrary rule keys; remote workflow discovery; and external registry/archive verification
-are not implemented in `0.20.0`. Private-repository and fork token behavior remains
+are not implemented in `0.21.0`. Private-repository and fork token behavior remains
 unclaimed. Cross-platform validation covers installation as a
 GitHub CLI script extension and the composite Action on hosted runners.
 
@@ -108,14 +110,14 @@ need GitHub CLI.
 Install the exact preview tag:
 
 ```text
-gh extension install uibcdf/gh-run-receptor --pin 0.20.0
+gh extension install uibcdf/gh-run-receptor --pin 0.21.0
 gh run-receptor --version
 ```
 
 Expected version output:
 
 ```text
-0.20.0
+0.21.0
 ```
 
 Pinning is deliberate. A pinned script extension does not advance through an ordinary
@@ -153,7 +155,7 @@ jobs:
   report:
     runs-on: ubuntu-latest
     steps:
-      - uses: uibcdf/gh-run-receptor@0.20.0
+      - uses: uibcdf/gh-run-receptor@0.21.0
         with:
           run-id: ${{ github.event.workflow_run.id }}
           repository: ${{ github.repository }}
@@ -173,7 +175,7 @@ For a small dedicated reporter, the same complete configuration accepted by `con
 may be placed beside the Action call:
 
 ```yaml
-      - uses: uibcdf/gh-run-receptor@0.20.0
+      - uses: uibcdf/gh-run-receptor@0.21.0
         with:
           run-id: ${{ github.event.workflow_run.id }}
           repository: ${{ github.repository }}
@@ -225,7 +227,7 @@ For a smaller terminal reporter, delegate the complete job to the reusable workf
 ```yaml
 jobs:
   report:
-    uses: uibcdf/gh-run-receptor/.github/workflows/reusable-report.yml@0.20.0
+    uses: uibcdf/gh-run-receptor/.github/workflows/reusable-report.yml@0.21.0
     with:
       run-id: ${{ github.event.workflow_run.id }}
       repository: ${{ github.repository }}
@@ -237,7 +239,7 @@ ready state, and error category. It deliberately omits runner-local paths. Inter
 uses GitHub's `$/` same-repository reference, so the Action resolves from the exact commit
 selected for the reusable workflow without a checkout or moving internal reference. This
 path requires github.com runner 2.336.0 or newer; older GitHub Enterprise Server versions
-without `$/` are not claimed. Pin the full 0.20.0 commit instead of the tag when an
+without `$/` are not claimed. Pin the full 0.21.0 commit instead of the tag when an
 immutable reference is required.
 
 ## Minimum use from a client
@@ -338,6 +340,32 @@ Rules are opt-in. Policy `PASS` returns 0, a measured violation returns 1, insuf
 evidence for a requested rule returns 4, and invalid or unsafe input returns 5. Policy
 files are bounded, duplicate-key rejecting, non-finite rejecting, and never executable.
 
+## Aggregating several explicit runs
+
+Use `aggregate` when one decision spans several workflows or repositories and must have a
+single machine-readable collection result:
+
+```text
+gh run-receptor aggregate CI_BUNDLE DOCS_BUNDLE CONDA_BUNDLE --receptor=llm
+gh run-receptor aggregate \
+  https://github.com/OWNER/REPO/actions/runs/RUN_ID \
+  https://github.com/OTHER/REPO/actions/runs/RUN_ID \
+  --capture metadata --receptor=llm
+```
+
+Supply two to fifty bundle directories or two to fifty remote runs; do not mix local and
+remote sources. Numeric remote IDs require one `--repo`; full URLs permit different
+repositories on the same GitHub hostname. The aggregate retains every run and attempt
+independently and never creates a synthetic GitHub conclusion. A known failure returns 1
+even if another source is incomplete; other terminal non-success, active work, and
+incomplete evidence retain codes 2, 3, and 4.
+
+Aggregation is not always shorter than several already-compact receptor lines. The first
+two-run measurement used 139 `cl100k_base` tokens versus 208 for a compact native JSON
+projection, but two individual receptor reports used only 87. Choose `aggregate` for one
+versioned collection, workflow coverage, and conservative outcome composition; choose
+individual `inspect` calls when only a few known per-run verdicts are needed.
+
 ## Profiles
 
 Choose a profile from the job, step, and artifact evidence that GitHub exposes, not from
@@ -353,7 +381,7 @@ several concerns, use this decision table:
 | Build, test, or validation runs without publication semantics | `ci` |
 | No built-in profile represents the visible evidence faithfully | `generic`, followed by targeted native inspection |
 
-Version 0.20.0 consumes attempt-qualified `events@1` artifacts emitted by a producer and
+Version 0.21.0 consumes attempt-qualified `events@1` artifacts emitted by a producer and
 can therefore apply the Conda profile and `expected_platforms` to observed hidden package
 results. Producer upload success records an observed upload command, not independent
 registry presence; keep Anaconda or another registry check as a separate release gate.
@@ -515,7 +543,7 @@ workflows:
         - win-64
 ```
 
-Version `0.20.0` supports exactly one identity per rule: an exact `path`, positive numeric
+Version `0.21.0` supports exactly one identity per rule: an exact `path`, positive numeric
 `id`, or exact display `name`. Path has precedence over ID, and ID over name, if more than
 one distinct rule matches the observed workflow. Rules select `generic`, `ci`, `docs`,
 `conda`, or `release`.
