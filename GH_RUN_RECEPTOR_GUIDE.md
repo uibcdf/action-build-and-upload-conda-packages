@@ -11,8 +11,8 @@ Metadata
 
 - Source repository: `gh-run-receptor`
 - Source document: `standards/GH_RUN_RECEPTOR_GUIDE.md`
-- Source version: `gh-run-receptor@0.19.1`
-- Last synced: 2026-09-08
+- Source version: `gh-run-receptor@0.20.0`
+- Last synced: 2026-09-14
 
 ## What gh-run-receptor is
 
@@ -48,7 +48,7 @@ successful npm release case from 95 to 84 tokens (11.6%).
 
 ## Supported integration level
 
-Version `0.19.1` is a source preview with:
+Version `0.20.0` is a source preview with:
 
 - `inspect`, `capture`, offline `replay`, and transition-only `watch`;
 - `human`, `llm`, and JSON rendering;
@@ -85,14 +85,16 @@ Version `0.19.1` is a source preview with:
   artifact-inventory, and matrix-coverage deltas;
 - strict opt-in comparison policies that distinguish pass, measured violation, and
   insufficient evidence;
-- one registry for seven versioned serialized boundaries, with all current v1 schema
+- one registry for eight versioned serialized boundaries, with all current v1 schema
   resources frozen against their first publishing release;
+- strict bounded `events@1` producer evidence for Action-internal Conda matrices, validated
+  end to end on hosted Ubuntu and Windows and through deterministic sanitized replay;
 - a draft-first publication path for exact-tag wheel, source-distribution, and checksum
   assets with independent public-release revalidation.
 
 Configurable required jobs, documentation phases, or release gates; pattern matching;
 arbitrary rule keys; remote workflow discovery; and external registry/archive verification
-are not implemented in `0.19.1`. Private-repository and fork token behavior remains
+are not implemented in `0.20.0`. Private-repository and fork token behavior remains
 unclaimed. Cross-platform validation covers installation as a
 GitHub CLI script extension and the composite Action on hosted runners.
 
@@ -106,14 +108,14 @@ need GitHub CLI.
 Install the exact preview tag:
 
 ```text
-gh extension install uibcdf/gh-run-receptor --pin 0.19.1
+gh extension install uibcdf/gh-run-receptor --pin 0.20.0
 gh run-receptor --version
 ```
 
 Expected version output:
 
 ```text
-0.19.1
+0.20.0
 ```
 
 Pinning is deliberate. A pinned script extension does not advance through an ordinary
@@ -151,7 +153,7 @@ jobs:
   report:
     runs-on: ubuntu-latest
     steps:
-      - uses: uibcdf/gh-run-receptor@0.19.1
+      - uses: uibcdf/gh-run-receptor@0.20.0
         with:
           run-id: ${{ github.event.workflow_run.id }}
           repository: ${{ github.repository }}
@@ -171,7 +173,7 @@ For a small dedicated reporter, the same complete configuration accepted by `con
 may be placed beside the Action call:
 
 ```yaml
-      - uses: uibcdf/gh-run-receptor@0.19.1
+      - uses: uibcdf/gh-run-receptor@0.20.0
         with:
           run-id: ${{ github.event.workflow_run.id }}
           repository: ${{ github.repository }}
@@ -223,7 +225,7 @@ For a smaller terminal reporter, delegate the complete job to the reusable workf
 ```yaml
 jobs:
   report:
-    uses: uibcdf/gh-run-receptor/.github/workflows/reusable-report.yml@0.19.1
+    uses: uibcdf/gh-run-receptor/.github/workflows/reusable-report.yml@0.20.0
     with:
       run-id: ${{ github.event.workflow_run.id }}
       repository: ${{ github.repository }}
@@ -235,7 +237,7 @@ ready state, and error category. It deliberately omits runner-local paths. Inter
 uses GitHub's `$/` same-repository reference, so the Action resolves from the exact commit
 selected for the reusable workflow without a checkout or moving internal reference. This
 path requires github.com runner 2.336.0 or newer; older GitHub Enterprise Server versions
-without `$/` are not claimed. Pin the full 0.19.1 commit instead of the tag when an
+without `$/` are not claimed. Pin the full 0.20.0 commit instead of the tag when an
 immutable reference is required.
 
 ## Minimum use from a client
@@ -284,8 +286,10 @@ Capture policies:
 Bundles separate hostname, repository, run, attempt, and policy. Members carry exact byte
 counts and SHA-256 digests. A metadata bundle is never reused as if it satisfied a full
 request. An explicit historical attempt uses attempt-specific run, job, and log evidence;
-replay rejects contradictory retained identity. If requested logs have expired, capture
-remains replayable but is marked incomplete and cannot produce `PASS`.
+replay rejects contradictory retained identity. Completed-attempt bundles are reused;
+cached active runs are recaptured through a validated replacement before reporting. If
+requested logs have expired, capture remains replayable but is marked incomplete and
+cannot produce `PASS`.
 
 ## Monitoring without repeated output
 
@@ -344,16 +348,44 @@ several concerns, use this decision table:
 | --- | --- |
 | Native platforms appear as separate jobs or matching GitHub artifacts | `conda` |
 | A declared `noarch: python` package is built by visible package jobs | `conda` with `package_kind: noarch` |
-| A composite or reusable action builds several platforms internally and the visible workflow orchestrates publication | `release` |
+| A composite or reusable action emits validated `events@1` package evidence for internal platforms | `conda` |
+| An action builds several platforms internally without producer evidence and the visible workflow orchestrates publication | `release` |
 | Build, test, or validation runs without publication semantics | `ci` |
 | No built-in profile represents the visible evidence faithfully | `generic`, followed by targeted native inspection |
 
-The `release` workaround for an action-internal platform matrix preserves the visible
-publication steps but does not prove any hidden platform result or external registry
-state. Keep Anaconda or another registry check as an independent gate. Do not configure
-`expected_platforms` unless those platform identities are present in evidence available
-to the Conda profile. Structured support for hidden producer matrices is tracked in
-`uibcdf/gh-run-receptor#35`.
+Version 0.20.0 consumes attempt-qualified `events@1` artifacts emitted by a producer and
+can therefore apply the Conda profile and `expected_platforms` to observed hidden package
+results. Producer upload success records an observed upload command, not independent
+registry presence; keep Anaconda or another registry check as a separate release gate.
+When the action does not emit this contract, the `release` workaround preserves visible
+publication steps but proves neither hidden platform results nor external registry state.
+
+For `uibcdf/action-build-and-upload-conda-packages`, pin a reviewed release, give every
+matrix invocation a stable index, and upload the generated document explicitly:
+
+```yaml
+- name: Build and upload Conda packages
+  id: conda-build-and-upload
+  uses: uibcdf/action-build-and-upload-conda-packages@v2.1.0
+  with:
+    # Existing action inputs belong here.
+    evidence_matrix_index: ${{ strategy.job-index }}
+
+- name: Upload structured producer evidence
+  if: ${{ always() && steps.conda-build-and-upload.outputs.evidence_path != '' }}
+  uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+  with:
+    name: ${{ steps.conda-build-and-upload.outputs.evidence_artifact_name }}
+    path: ${{ steps.conda-build-and-upload.outputs.evidence_path }}
+    if-no-files-found: error
+    retention-days: 7
+```
+
+The `always()` guard is deliberate: if publication fails after evidence generation, the
+next normal step would otherwise be skipped and the diagnostic artifact would disappear.
+For a non-matrix job, omit `evidence_matrix_index`. Keep the exact artifact name and the
+member name `gh-run-receptor-events.json`; the consumer rejects aliases and ambiguous
+duplicates.
 
 Every `init` result remains a review-only proposal. Starting in version `0.19.1`, a
 Conda-looking filename without source evidence and recognized action-internal platform
@@ -483,7 +515,7 @@ workflows:
         - win-64
 ```
 
-Version `0.19.1` supports exactly one identity per rule: an exact `path`, positive numeric
+Version `0.20.0` supports exactly one identity per rule: an exact `path`, positive numeric
 `id`, or exact display `name`. Path has precedence over ID, and ID over name, if more than
 one distinct rule matches the observed workflow. Rules select `generic`, `ci`, `docs`,
 `conda`, or `release`.
