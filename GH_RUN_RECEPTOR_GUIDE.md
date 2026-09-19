@@ -11,7 +11,7 @@ Metadata
 
 - Source repository: `gh-run-receptor`
 - Source document: `standards/GH_RUN_RECEPTOR_GUIDE.md`
-- Source version: `gh-run-receptor@0.22.0`
+- Source version: `gh-run-receptor@0.23.0`
 - Last synced: 2026-09-19
 
 ## What gh-run-receptor is
@@ -48,7 +48,7 @@ successful npm release case from 95 to 84 tokens (11.6%).
 
 ## Supported integration level
 
-Version `0.22.0` is a source preview with:
+Version `0.23.0` is a source preview with:
 
 - `inspect`, `capture`, offline `replay`, and transition-only `watch`;
 - `human`, `llm`, and JSON rendering;
@@ -96,7 +96,7 @@ Version `0.22.0` is a source preview with:
 
 Configurable required jobs, documentation phases, or release gates; pattern matching;
 arbitrary rule keys; remote workflow discovery; and external registry/archive verification
-are not implemented in `0.22.0`. Private-repository and fork token behavior remains
+are not implemented in `0.23.0`. Private-repository and fork token behavior remains
 unclaimed. Cross-platform validation covers installation as a
 GitHub CLI script extension and the composite Action on hosted runners.
 
@@ -110,14 +110,14 @@ need GitHub CLI.
 Install the exact preview tag:
 
 ```text
-gh extension install uibcdf/gh-run-receptor --pin 0.22.0
+gh extension install uibcdf/gh-run-receptor --pin 0.23.0
 gh run-receptor --version
 ```
 
 Expected version output:
 
 ```text
-0.22.0
+0.23.0
 ```
 
 Pinning is deliberate. A pinned script extension does not advance through an ordinary
@@ -155,7 +155,7 @@ jobs:
   report:
     runs-on: ubuntu-latest
     steps:
-      - uses: uibcdf/gh-run-receptor@0.22.0
+      - uses: uibcdf/gh-run-receptor@0.23.0
         with:
           run-id: ${{ github.event.workflow_run.id }}
           repository: ${{ github.repository }}
@@ -175,7 +175,7 @@ For a small dedicated reporter, the same complete configuration accepted by `con
 may be placed beside the Action call:
 
 ```yaml
-      - uses: uibcdf/gh-run-receptor@0.22.0
+      - uses: uibcdf/gh-run-receptor@0.23.0
         with:
           run-id: ${{ github.event.workflow_run.id }}
           repository: ${{ github.repository }}
@@ -227,7 +227,7 @@ For a smaller terminal reporter, delegate the complete job to the reusable workf
 ```yaml
 jobs:
   report:
-    uses: uibcdf/gh-run-receptor/.github/workflows/reusable-report.yml@0.22.0
+    uses: uibcdf/gh-run-receptor/.github/workflows/reusable-report.yml@0.23.0
     with:
       run-id: ${{ github.event.workflow_run.id }}
       repository: ${{ github.repository }}
@@ -239,7 +239,7 @@ ready state, and error category. It deliberately omits runner-local paths. Inter
 uses GitHub's `$/` same-repository reference, so the Action resolves from the exact commit
 selected for the reusable workflow without a checkout or moving internal reference. This
 path requires github.com runner 2.336.0 or newer; older GitHub Enterprise Server versions
-without `$/` are not claimed. Pin the full 0.22.0 commit instead of the tag when an
+without `$/` are not claimed. Pin the full 0.23.0 commit instead of the tag when an
 immutable reference is required.
 
 ## Minimum use from a client
@@ -381,7 +381,7 @@ several concerns, use this decision table:
 | Build, test, or validation runs without publication semantics | `ci` |
 | No built-in profile represents the visible evidence faithfully | `generic`, followed by targeted native inspection |
 
-Version 0.22.0 consumes attempt-qualified `events@1` artifacts emitted by a producer and
+Version 0.23.0 consumes attempt-qualified `events@1` artifacts emitted by a producer and
 can therefore apply the Conda profile and `expected_platforms` to observed hidden package
 results. Producer upload success records an observed upload command, not independent
 registry presence; keep Anaconda or another registry check as a separate release gate.
@@ -543,7 +543,7 @@ workflows:
         - win-64
 ```
 
-Version `0.22.0` supports exactly one identity per rule: an exact `path`, positive numeric
+Version `0.23.0` supports exactly one identity per rule: an exact `path`, positive numeric
 `id`, or exact display `name`. Path has precedence over ID, and ID over name, if more than
 one distinct rule matches the observed workflow. Rules select `generic`, `ci`, `docs`,
 `conda`, or `release`.
