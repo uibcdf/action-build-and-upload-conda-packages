@@ -6,6 +6,24 @@ on:
   workflow_dispatch:
 
 jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: mamba-org/setup-micromamba@v3.2.1
+        with:
+          environment-name: action-test
+          create-args: >-
+            python=3.13
+            anaconda-client
+          condarc: |
+            channels:
+              - conda-forge
+            channel_priority: strict
+      - name: Run unit tests
+        shell: bash -el {0}
+        run: python -m unittest discover -s tests -v
+
   multiple-python-variants:
     name: ${{ matrix.os }}
     runs-on: ${{ matrix.os }}

@@ -58,6 +58,33 @@ using internal JSON transport. A hosted integration gate builds and verifies two
 variants for four internal Conda platforms on both Ubuntu and Windows. Producer upload
 success remains distinct from independent Anaconda registry verification.
 
+## Exact staging promotion
+
+Version 2.2.0 adds a separate `promote` subaction for staging-first releases. It promotes
+one fully qualified Anaconda.org file by adding a target label through the API; it does
+not rebuild, overwrite, or remove the source label. Both the source and resulting target
+must expose the caller-supplied SHA-256 digest, and a missing or contradictory poststate
+fails the step.
+
+The caller must already provide Python and `anaconda-client`, just as for the build
+action:
+
+```yaml
+- name: Promote the verified candidate
+  id: promote
+  uses: uibcdf/action-build-and-upload-conda-packages/promote@v2.2.0
+  with:
+    package-spec: uibcdf/example/1.2.3/noarch/example-1.2.3-py_0.conda
+    expected-sha256: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    from-label: staging
+    to-label: main
+    token: ${{ secrets.ANACONDA_TOKEN }}
+```
+
+The `receipt` output names a bounded `uibcdf.conda-promotion@1` JSON file for caller-owned
+retention. Use an exact file identity and digest obtained from the staged candidate gate;
+package- or version-wide promotion is deliberately unsupported.
+
 ## What changed in v2.0.3
 
 The action no longer runs a second complete `conda build --output` render after a

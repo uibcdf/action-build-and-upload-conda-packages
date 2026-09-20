@@ -1,0 +1,49 @@
+name: 'Promote an exact conda package'
+description: 'Add a target Anaconda.org label to one digest-verified staged artifact.'
+author: 'UIBCDF Development Team'
+branding:
+  icon: 'package'
+  color: 'orange'
+inputs:
+  package-spec:
+    description: 'Exact owner/package/version/subdir/filename identity.'
+    required: true
+  expected-sha256:
+    description: 'Expected lowercase SHA-256 digest of the staged artifact.'
+    required: true
+  from-label:
+    description: 'Existing source label.'
+    required: false
+    default: 'staging'
+  to-label:
+    description: 'Target publication label.'
+    required: false
+    default: 'main'
+  token:
+    description: 'Anaconda.org token allowed to change labels.'
+    required: true
+outputs:
+  package:
+    description: 'Exact promoted package identity.'
+    value: ${{ steps.promote.outputs.package }}
+  sha256:
+    description: 'Verified package digest.'
+    value: ${{ steps.promote.outputs.sha256 }}
+  receipt:
+    description: 'Path to the bounded JSON promotion receipt.'
+    value: ${{ steps.promote.outputs.receipt }}
+runs:
+  using: 'composite'
+  steps:
+    - name: Promote and verify the exact package
+      id: promote
+      shell: bash -l {0}
+      env:
+        ANACONDA_API_TOKEN: ${{ inputs.token }}
+      run: >-
+        python "$GITHUB_ACTION_PATH/../scripts/promote_conda_package.py"
+        --package-spec "${{ inputs.package-spec }}"
+        --expected-sha256 "${{ inputs.expected-sha256 }}"
+        --from-label "${{ inputs.from-label }}"
+        --to-label "${{ inputs.to-label }}"
+        --output "$RUNNER_TEMP/conda-promotion-receipt.json"
