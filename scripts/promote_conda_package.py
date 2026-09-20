@@ -81,8 +81,9 @@ def _exact_file(api: AnacondaAPI, label: str, package: ExactPackage) -> dict | N
 
 
 def promote_exact_package(
-    api: AnacondaAPI,
+    read_api: AnacondaAPI,
     *,
+    write_api: AnacondaAPI | None = None,
     package: ExactPackage,
     source_label: str,
     target_label: str,
@@ -99,7 +100,8 @@ def promote_exact_package(
             "expected SHA-256 must contain exactly 64 lowercase hex digits"
         )
 
-    source = _exact_file(api, source_label, package)
+    writer = write_api or read_api
+    source = _exact_file(read_api, source_label, package)
     if source is None:
         raise RuntimeError(
             f"exact package is absent from source label {source_label!r}: "
@@ -111,16 +113,16 @@ def promote_exact_package(
             f"expected {expected_sha256}, observed {source.get('sha256')}"
         )
 
-    target = _exact_file(api, target_label, package)
+    target = _exact_file(read_api, target_label, package)
     if target is None:
-        api.add_channel(
+        writer.add_channel(
             target_label,
             package.owner,
             package=package.package,
             version=package.version,
             filename=package.basename,
         )
-        target = _exact_file(api, target_label, package)
+        target = _exact_file(read_api, target_label, package)
     if target is None:
         raise RuntimeError(
             f"promotion returned without publishing {package.full_name} to "
@@ -155,9 +157,11 @@ def main() -> int:
     if not token:
         raise RuntimeError("ANACONDA_API_TOKEN is required")
     package = parse_exact_spec(args.package_spec)
-    api = get_server_api(token, None)
+    read_api = get_server_api(None, None)
+    write_api = get_server_api(token, None)
     receipt = promote_exact_package(
-        api,
+        read_api,
+        write_api=write_api,
         package=package,
         source_label=args.from_label,
         target_label=args.to_label,

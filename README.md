@@ -85,6 +85,10 @@ The `receipt` output names a bounded `uibcdf.conda-promotion@1` JSON file for ca
 retention. Use an exact file identity and digest obtained from the staged candidate gate;
 package- or version-wide promotion is deliberately unsupported.
 
+Version 2.2.1 keeps public source/target verification unauthenticated and uses the token
+only for the label mutation. An upload-scoped token therefore remains sufficient; the
+Action does not require the broader `api:read` scope merely to inspect public metadata.
+
 ## What changed in v2.0.3
 
 The action no longer runs a second complete `conda build --output` render after a

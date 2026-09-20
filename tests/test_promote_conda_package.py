@@ -63,6 +63,29 @@ class PromotionTests(unittest.TestCase):
             ],
         )
 
+    def test_uses_the_token_client_only_for_the_label_write(self):
+        read_api = FakeAPI({"staging": [self.file], "main": []})
+
+        class WriteOnlyAPI:
+            def add_channel(inner, *args, **kwargs):
+                read_api.add_channel(*args, **kwargs)
+
+            def show_channel(inner, *args, **kwargs):
+                raise AssertionError(
+                    "authenticated client must not perform public reads"
+                )
+
+        receipt = promote_exact_package(
+            read_api,
+            write_api=WriteOnlyAPI(),
+            package=self.package,
+            source_label="staging",
+            target_label="main",
+            expected_sha256=self.digest,
+        )
+
+        self.assertEqual(receipt["status"], "verified")
+
     def test_is_idempotent_when_the_exact_target_is_already_present(self):
         api = FakeAPI({"staging": [self.file], "main": [self.file]})
 
