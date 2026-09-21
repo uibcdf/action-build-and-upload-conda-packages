@@ -72,7 +72,7 @@ action:
 ```yaml
 - name: Promote the verified candidate
   id: promote
-  uses: uibcdf/action-build-and-upload-conda-packages/promote@v2.2.0
+  uses: uibcdf/action-build-and-upload-conda-packages/promote@v2.2.2
   with:
     package-spec: uibcdf/example/1.2.3/noarch/example-1.2.3-py_0.conda
     expected-sha256: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
@@ -85,9 +85,11 @@ The `receipt` output names a bounded `uibcdf.conda-promotion@1` JSON file for ca
 retention. Use an exact file identity and digest obtained from the staged candidate gate;
 package- or version-wide promotion is deliberately unsupported.
 
-Version 2.2.1 keeps public source/target verification unauthenticated and uses the token
-only for the label mutation. An upload-scoped token therefore remains sufficient; the
-Action does not require the broader `api:read` scope merely to inspect public metadata.
+Version 2.2.1 attempted unauthenticated channel metadata reads, but the Anaconda channel
+endpoint requires `api:read` and the client inherits the upload token from the environment.
+Version 2.2.2 reads exact file metadata and labels from the public release endpoint with
+ambient credentials explicitly discarded. The upload-scoped token is reserved for the
+label mutation.
 
 ## What changed in v2.0.3
 

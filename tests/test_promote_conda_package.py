@@ -1,6 +1,8 @@
 import unittest
+from unittest.mock import patch
 
 from scripts.promote_conda_package import (
+    _public_api,
     parse_exact_spec,
     promote_exact_package,
 )
@@ -11,8 +13,19 @@ class FakeAPI:
         self.labels = labels
         self.added = []
 
-    def show_channel(self, channel, owner):
-        return {"files": list(self.labels.get(channel, []))}
+    def release(self, owner, package, version):
+        distributions = []
+        for label, files in self.labels.items():
+            for item in files:
+                existing = next(
+                    (entry for entry in distributions if entry["full_name"] == item["full_name"]),
+                    None,
+                )
+                if existing is None:
+                    existing = {**item, "labels": []}
+                    distributions.append(existing)
+                existing["labels"].append(label)
+        return {"distributions": distributions}
 
     def add_channel(self, channel, owner, package=None, version=None, filename=None):
         self.added.append((channel, owner, package, version, filename))
@@ -70,7 +83,7 @@ class PromotionTests(unittest.TestCase):
             def add_channel(inner, *args, **kwargs):
                 read_api.add_channel(*args, **kwargs)
 
-            def show_channel(inner, *args, **kwargs):
+            def release(inner, *args, **kwargs):
                 raise AssertionError(
                     "authenticated client must not perform public reads"
                 )
@@ -85,6 +98,19 @@ class PromotionTests(unittest.TestCase):
         )
 
         self.assertEqual(receipt["status"], "verified")
+
+    def test_public_api_discards_an_ambient_write_only_token(self):
+        def discover_ambient_token(*, cls):
+            return cls("upload-only-token", domain="https://api.anaconda.org")
+
+        with patch(
+            "scripts.promote_conda_package.get_server_api",
+            side_effect=discover_ambient_token,
+        ):
+            client = _public_api()
+
+        self.assertIsNone(client.token)
+        self.assertNotIn("Authorization", client.session.headers)
 
     def test_is_idempotent_when_the_exact_target_is_already_present(self):
         api = FakeAPI({"staging": [self.file], "main": [self.file]})

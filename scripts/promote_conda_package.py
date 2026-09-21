@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
+from binstar_client import Binstar
 from binstar_client.utils import get_server_api
 
 _SHA256 = re.compile(r"[0-9a-f]{64}")
@@ -19,7 +20,7 @@ _LABEL = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 class AnacondaAPI(Protocol):
     """Describing the bounded API surface used by promotion."""
 
-    def show_channel(self, channel: str, owner: str) -> dict: ...
+    def release(self, owner: str, package: str, version: str) -> dict: ...
 
     def add_channel(
         self,
@@ -67,17 +68,24 @@ def parse_exact_spec(value: str) -> ExactPackage:
 
 
 def _exact_file(api: AnacondaAPI, label: str, package: ExactPackage) -> dict | None:
-    channel = api.show_channel(label, package.owner)
+    release = api.release(package.owner, package.package, package.version)
     matches = [
         item
-        for item in channel.get("files", [])
+        for item in release.get("distributions", [])
         if item.get("full_name") == package.full_name
+        and label in item.get("labels", [])
     ]
     if len(matches) > 1:
         raise RuntimeError(
             f"label {label!r} returned duplicate identity {package.full_name!r}"
         )
     return matches[0] if matches else None
+
+
+def _public_api() -> AnacondaAPI:
+    """Discarding ambient credentials even when the client discovers a token."""
+
+    return get_server_api(cls=lambda _token, **kwargs: Binstar(None, **kwargs))
 
 
 def promote_exact_package(
@@ -157,7 +165,7 @@ def main() -> int:
     if not token:
         raise RuntimeError("ANACONDA_API_TOKEN is required")
     package = parse_exact_spec(args.package_spec)
-    read_api = get_server_api(None, None)
+    read_api = _public_api()
     write_api = get_server_api(token, None)
     receipt = promote_exact_package(
         read_api,
