@@ -45,6 +45,18 @@ This GitHub Action was originally developed by the [Computational Biology and Dr
 Mexico City Children's Hospital Federico Gómez][UIBCDF]. For the complete list of contributors, refer to the [contributors section](https://github.com/uibcdf/action-build-and-upload-conda-packages/graphs/contributors).<br>
 Explore more GitHub Actions developed by UIBCDF at the [UIBCDF GitHub Organization page](https://github.com/search?q=topic%3Agithub-actions+org%3Auibcdf&type=Repositories).
 
+## UIBCDF support infrastructure and feedback
+
+This action is UIBCDF-owned development infrastructure used by MOLI components; it is
+cataloged in [MOLI's support-infrastructure guide](https://github.com/uibcdf/moli/blob/main/devguide/governance/support_infrastructure.md).
+It is not a scientific MOLI component. Report action defects, missing behavior and
+improvement proposals in [this repository's issues](https://github.com/uibcdf/action-build-and-upload-conda-packages/issues),
+or add evidence to an existing issue. Link blocked consumer work. A change to MOLI-wide
+publication rules belongs in [MOLI issues](https://github.com/uibcdf/moli/issues);
+suite-specific adoption belongs in [MolSysSuite issues](https://github.com/uibcdf/molsyssuite/issues).
+Keep credentials and sensitive evidence out of public issues; use private security
+reporting for exploitable findings. Filing feedback does not promise immediate delivery.
+
 ## What changed in v2.1.0
 
 The action can emit bounded `gh-run-receptor.events@1` evidence from package files and
