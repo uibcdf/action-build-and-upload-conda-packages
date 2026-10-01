@@ -70,6 +70,55 @@ using internal JSON transport. A hosted integration gate builds and verifies two
 variants for four internal Conda platforms on both Ubuntu and Windows. Producer upload
 success remains distinct from independent Anaconda registry verification.
 
+## Upload an existing validated artifact
+
+The `upload` subaction uploads one existing Conda file without rebuilding or
+converting it. It supports the separation `build with upload: false` → inspect
+the exact candidate archive and resources → upload those validated bytes.
+This operation is implemented for
+[provider issue #45](https://github.com/uibcdf/action-build-and-upload-conda-packages/issues/45),
+with consumer adoption in [MolSysSuite #45](https://github.com/uibcdf/molsyssuite/issues/45).
+
+Pin the subaction to the reviewed full commit that supplies it. The caller must
+provide Python and `anaconda-client`, validate its recipe/artifact/source identity
+and select an authorized route before invoking the operation:
+
+```yaml
+- id: upload_exact
+  uses: uibcdf/action-build-and-upload-conda-packages/upload@<reviewed-full-commit>
+  with:
+    artifact: ${{ steps.candidate.outputs.path }}
+    package-spec: ${{ steps.candidate.outputs.package-spec }}
+    expected-sha256: ${{ steps.candidate.outputs.sha256 }}
+    candidate-sha: ${{ steps.candidate.outputs.candidate-sha }}
+    label: staging
+    token: ${{ secrets.ANACONDA_TOKEN }}
+- if: ${{ always() && steps.upload_exact.outputs.receipt != '' }}
+  uses: actions/upload-artifact@v4
+  with:
+    name: exact-upload-receipt
+    path: ${{ steps.upload_exact.outputs.receipt }}
+```
+
+The exact identity is `owner/package/version/subdir/filename`. Local bytes must
+match the supplied SHA-256. The operation seals a private byte-identical copy,
+checks occupancy across all labels and rejects an existing coordinate even when
+its digest matches. It invokes the upload client once, without force. Credentials
+remain in the environment; registry reads are public and credential-free.
+
+Its `uibcdf.conda-upload@1` receipt records the coordinate, digest, caller-certified
+source, selected label and observed poststate. This is producer evidence; the
+caller still retains independent public verification and clean installed-route
+evidence. An uncertain response or unavailable/contradictory poststate fails with
+an `unverified` receipt. Inspect the exact public coordinate before deciding any
+further action; the subaction never retries a mutation. A label promotion uses
+the separate `promote` operation, not another upload.
+
+The independently callable tool is `scripts/upload_conda_package.py`; its contract
+is exercised by `tests/test_upload_conda_package.py`. No package publication is
+performed by those offline tests. Historical build/promote releases retain their
+existing contracts.
+
 ## Exact staging promotion
 
 Version 2.2.0 adds a separate `promote` subaction for staging-first releases. It promotes

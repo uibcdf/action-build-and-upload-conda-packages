@@ -1,0 +1,43 @@
+name: Upload an exact validated Conda artifact
+description: Upload one existing digest-bound file once, without rebuilding or converting
+inputs:
+  artifact:
+    required: true
+    description: Path to the validated existing Conda file
+  package-spec:
+    required: true
+    description: Exact owner/package/version/subdir/filename
+  expected-sha256:
+    required: true
+    description: Expected lowercase SHA-256 of the validated file
+  label:
+    required: true
+    description: Publication label selected by the caller's reviewed route
+  candidate-sha:
+    required: true
+    description: Immutable source SHA certified by the caller's candidate gates
+  token:
+    required: true
+    description: Credential used only by the write client
+outputs:
+  receipt:
+    description: Bounded receipt, including unverified outcomes
+    value: ${{ steps.upload.outputs.receipt }}
+runs:
+  using: composite
+  steps:
+    - id: upload
+      name: Upload and observe the exact file
+      shell: bash
+      env:
+        ARTIFACT: ${{ inputs.artifact }}
+        PACKAGE_SPEC: ${{ inputs.package-spec }}
+        EXPECTED_SHA256: ${{ inputs.expected-sha256 }}
+        LABEL: ${{ inputs.label }}
+        CANDIDATE_SHA: ${{ inputs.candidate-sha }}
+        ANACONDA_API_TOKEN: ${{ inputs.token }}
+      run: |
+        python "$GITHUB_ACTION_PATH/../scripts/upload_conda_package.py" \
+          --artifact "$ARTIFACT" --package-spec "$PACKAGE_SPEC" \
+          --expected-sha256 "$EXPECTED_SHA256" --label "$LABEL" \
+          --candidate-sha "$CANDIDATE_SHA" --output "$RUNNER_TEMP/conda-upload-receipt.json"

@@ -1,0 +1,30 @@
+name: Test exact-file upload contract
+on:
+  push:
+    branches: [main]
+    paths:
+      - scripts/upload_conda_package.py
+      - upload/action.yml
+      - tests/test_upload_conda_package.py
+      - .github/workflows/test_exact_upload.yaml
+  pull_request:
+    paths:
+      - scripts/upload_conda_package.py
+      - upload/action.yml
+      - tests/test_upload_conda_package.py
+      - .github/workflows/test_exact_upload.yaml
+permissions:
+  contents: read
+jobs:
+  offline-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Reject unsafe exact-file upload paths without publishing
+        run: python -m unittest discover -s tests -p test_upload_conda_package.py -v
