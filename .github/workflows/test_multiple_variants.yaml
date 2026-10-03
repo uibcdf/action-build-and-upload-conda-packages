@@ -91,6 +91,7 @@ jobs:
                   namespace = {}
                   exec(compile(source, modules[0].name, 'exec'), namespace)
                   assert namespace['__version__'] == '0.1.0'
+              print(path.name, modules[0].name)
           PYCODE
           test_root="$(mktemp -d -t variant-tests-XXXXXXXXXX)"
           index=0
@@ -108,7 +109,7 @@ jobs:
             fi
             conda create --yes --prefix "$test_prefix" "python=$python_version"
             conda install --yes --prefix "$test_prefix" "$package_path"
-            conda run --prefix "$test_prefix" python -c "import action_multiple_variants_fixture"
+            conda run --prefix "$test_prefix" python -c "import sys; print(sys.executable, sys.version); import action_multiple_variants_fixture; assert action_multiple_variants_fixture.__version__ == '0.1.0'"
             index=$((index + 1))
           done
           test "$index" -eq 2

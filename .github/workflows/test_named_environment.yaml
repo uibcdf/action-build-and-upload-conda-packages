@@ -43,6 +43,9 @@ jobs:
           auto-activate: true
           channels: conda-forge
           channel-priority: strict
+      - name: Install build tools into base when selected
+        if: matrix.environment == 'base'
+        run: command conda install --yes --name base --override-channels --channel conda-forge "conda-build>=26.9,<27"
       - name: Verify build interpreter and manager boundary
         env:
           SELECTED_ENVIRONMENT: ${{ matrix.environment }}
@@ -75,6 +78,7 @@ jobs:
           conda_build_args: --package-format 1
           evidence_matrix_index: ${{ strategy.job-index }}
       - name: Check archive and upload-free producer evidence
+        id: archive
         env:
           BUILT_PATHS: ${{ steps.build.outputs.built_paths }}
           EVIDENCE_PATH: ${{ steps.build.outputs.evidence_path }}
@@ -96,6 +100,8 @@ jobs:
           evidence = json.loads(pathlib.Path(os.environ['EVIDENCE_PATH']).read_text())
           assert len(evidence['events']) == 1
           assert evidence['events'][0]['upload'] == 'not_requested'
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as stream:
+              stream.write(f"path={package.resolve()}\n")
           PY
       - name: Retain structured producer evidence
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
@@ -108,6 +114,6 @@ jobs:
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: active-conda-package-${{ strategy.job-index }}
-          path: ${{ steps.build.outputs.built_paths }}
+          path: ${{ steps.archive.outputs.path }}
           if-no-files-found: error
           retention-days: 7
