@@ -19,7 +19,7 @@
 - [About](#about)
 - [Requirements](#requirements)
   - [Conda-build recipe](#conda-build-recipe)
-  - [Conda base environment](#conda-base-environment)
+  - [Conda build environment](#conda-build-environment)
   - [Anaconda token](#anaconda-token)
     - [Create an Anaconda token](#create-an-anaconda-token)
       - [Using the command line](#using-the-command-line)
@@ -215,8 +215,8 @@ These files can be placed within a `.conda` directory in your repository.<br>
 For details on how to structure a conda-build recipe, refer to the [_Conda_ metadata instructions](https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html).
 
 ### Conda build environment
-This action relies on `conda` commands, which must be accessible within the GitHub runner. To ensure this, a base [_Conda_ environment](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-file-manually) needs to be set up.<br>
-We recommend using the [conda-incubator/setup-miniconda](https://github.com/conda-incubator/setup-miniconda) action in a preceding step of your GitHub workflow to configure the _Conda_ base environment:
+This action requires an activated [Conda build environment](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-file-manually) with `conda-build` available on the runner.<br>
+The [conda-incubator/setup-miniconda](https://github.com/conda-incubator/setup-miniconda) action can configure that environment in a preceding workflow step:
 
 ```yaml
 steps:
@@ -247,6 +247,14 @@ are tracked in [action #46](https://github.com/uibcdf/action-build-and-upload-co
 [MOLI #38](https://github.com/uibcdf/moli/issues/38) and
 [MolSysSuite #78](https://github.com/uibcdf/molsyssuite/issues/78). A consumer's
 installed scientific qualification remains a separate gate.
+
+The multiple-variant gate checks the payload in every converted archive and
+imports both host variants using each fresh environment's absolute interpreter.
+It asserts the Python minor, environment prefix and module origin, so a login
+shell reactivating the publisher cannot make an installed-package check use the
+publisher's Python. Windows archive inspection receives native paths. These
+qualification controls are tracked in
+[action #47](https://github.com/uibcdf/action-build-and-upload-conda-packages/issues/47).
 
 ### Anaconda token
 
