@@ -16,6 +16,7 @@ jobs:
           create-args: >-
             python=3.13
             anaconda-client
+            pyyaml>=6
           condarc: |
             channels:
               - conda-forge

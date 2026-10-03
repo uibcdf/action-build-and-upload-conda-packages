@@ -1,0 +1,7 @@
+name: action-named-publisher
+channels:
+  - conda-forge
+dependencies:
+  - python=3.13
+  - conda-build>=26.9,<27
+  - pyyaml>=6

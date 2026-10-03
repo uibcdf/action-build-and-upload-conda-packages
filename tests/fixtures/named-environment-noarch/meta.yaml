@@ -1,0 +1,23 @@
+package:
+  name: action-named-environment-fixture
+  version: "1.0.0"
+source:
+  path: .
+build:
+  number: 0
+  noarch: python
+requirements:
+  host:
+    - python
+    - pip
+    - setuptools
+  run:
+    - python >=3.11,<3.15
+test:
+  imports:
+    - action_named_environment_fixture
+  commands:
+    - python -c "import action_named_environment_fixture as fixture; assert fixture.VALUE == 42"
+about:
+  license: MIT
+  summary: Real tested noarch fixture for active-environment Conda invocation.

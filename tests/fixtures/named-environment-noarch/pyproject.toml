@@ -1,0 +1,8 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+[project]
+name = "action-named-environment-fixture"
+version = "1.0.0"
+[tool.setuptools]
+py-modules = ["action_named_environment_fixture"]

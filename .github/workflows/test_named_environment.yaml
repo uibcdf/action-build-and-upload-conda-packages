@@ -1,0 +1,103 @@
+name: Test active Conda build environments
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compilation:
+    name: ${{ matrix.os }} / ${{ matrix.environment }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            environment: action-named-publisher
+          - os: macos-15
+            environment: action-named-publisher
+          - os: windows-latest
+            environment: action-named-publisher
+          - os: ubuntu-latest
+            environment: base
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Create the selected build environment
+        uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3
+        with:
+          miniforge-version: latest
+          environment-file: .github/conda-envs/named_build.yaml
+          activate-environment: ${{ matrix.environment }}
+          auto-activate-base: false
+          channels: conda-forge
+          channel-priority: strict
+      - name: Verify build interpreter and manager boundary
+        env:
+          SELECTED_ENVIRONMENT: ${{ matrix.environment }}
+        run: |
+          python - <<'PY'
+          import importlib.metadata
+          import os
+          import pathlib
+          import subprocess
+          import sys
+          active = pathlib.Path(os.environ['CONDA_PREFIX']).resolve()
+          assert pathlib.Path(sys.prefix).resolve() == active
+          assert importlib.metadata.version('conda-build')
+          manager = os.environ['CONDA_EXE']
+          result = subprocess.run([manager, 'build', '--version'], capture_output=True, text=True)
+          if os.environ['SELECTED_ENVIRONMENT'] != 'base':
+              assert result.returncode != 0, 'fixture requires a base manager without the build plugin'
+          else:
+              assert result.returncode == 0, result.stderr
+          PY
+          command conda build --version
+      - name: Build and execute the real recipe tests
+        id: build
+        uses: ./
+        with:
+          meta_yaml_dir: tests/fixtures/named-environment-noarch
+          upload: false
+          platform_host: true
+          platform_all: false
+          conda_build_args: --package-format 1
+          evidence_matrix_index: ${{ strategy.job-index }}
+      - name: Check archive and upload-free producer evidence
+        env:
+          BUILT_PATHS: ${{ steps.build.outputs.built_paths }}
+          EVIDENCE_PATH: ${{ steps.build.outputs.evidence_path }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import pathlib
+          import tarfile
+          paths = os.environ['BUILT_PATHS'].split()
+          assert len(paths) == 1, paths
+          package = pathlib.Path(paths[0])
+          assert package.parent.name == 'noarch'
+          with tarfile.open(package) as archive:
+              index = json.load(archive.extractfile('info/index.json'))
+              assert index['noarch'] == 'python'
+              assert index['version'] == '1.0.0'
+              assert archive.extractfile('site-packages/action_named_environment_fixture.py').read().strip() == b'VALUE = 42'
+          evidence = json.loads(pathlib.Path(os.environ['EVIDENCE_PATH']).read_text())
+          assert len(evidence['events']) == 1
+          assert evidence['events'][0]['upload'] == 'not_requested'
+          PY
+      - name: Retain archive and structured producer evidence
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: active-conda-${{ strategy.job-index }}
+          path: |
+            ${{ steps.build.outputs.built_paths }}
+            ${{ steps.build.outputs.evidence_path }}
+          if-no-files-found: error
+          retention-days: 7

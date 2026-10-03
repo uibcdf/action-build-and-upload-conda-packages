@@ -214,7 +214,7 @@ A [conda-build recipe][conda-build-recipe] defines the instructions for building
 These files can be placed within a `.conda` directory in your repository.<br>
 For details on how to structure a conda-build recipe, refer to the [_Conda_ metadata instructions](https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html).
 
-### Conda base environment
+### Conda build environment
 This action relies on `conda` commands, which must be accessible within the GitHub runner. To ensure this, a base [_Conda_ environment](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-file-manually) needs to be set up.<br>
 We recommend using the [conda-incubator/setup-miniconda](https://github.com/conda-incubator/setup-miniconda) action in a preceding step of your GitHub workflow to configure the _Conda_ base environment:
 
@@ -234,6 +234,19 @@ steps:
         uses: uibcdf/action-build-and-upload-conda-packages@v2.0.1
         ...
 ```
+
+Install `conda-build` in the activated build environment. Both `base` and a
+named environment are supported. Compilation and conversion resolve the `conda`
+executable on `PATH`: Conda's activation shell function can otherwise forward to
+the base manager, whose Python does not discover plugins installed only in the
+active environment. This does not change activation or the selected build arguments.
+
+The named-environment regression builds and runs the recipe tests without upload
+on Linux, macOS ARM and Windows using `setup-miniconda`. Coordination and adoption
+are tracked in [action #46](https://github.com/uibcdf/action-build-and-upload-conda-packages/issues/46),
+[MOLI #38](https://github.com/uibcdf/moli/issues/38) and
+[MolSysSuite #78](https://github.com/uibcdf/molsyssuite/issues/78). A consumer's
+installed scientific qualification remains a separate gate.
 
 ### Anaconda token
 

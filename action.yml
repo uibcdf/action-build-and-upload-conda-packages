@@ -244,7 +244,9 @@ runs:
         # not interpolated into this script, so their content cannot become shell
         # syntax.
         echo "conda $build_function . --no-anaconda-upload --output-folder $out_dir $CONDA_BUILD_ARGS"
-        conda "$build_function" . --no-anaconda-upload --output-folder "$out_dir" $CONDA_BUILD_ARGS
+        # Activation keeps the shell function bound to the base manager. Use the
+        # executable on PATH so build plugins come from the active environment.
+        command conda "$build_function" . --no-anaconda-upload --output-folder "$out_dir" $CONDA_BUILD_ARGS
         host_packages=()
         while IFS= read -r package_path; do
           host_packages+=("$package_path")
@@ -283,7 +285,7 @@ runs:
         for host_package in "${host_packages[@]}"; do
           if [ -n "$platforms_options" ]; then
             echo "conda convert $host_package -o $out_dir $CONDA_CONVERT_ARGS$platforms_options"
-            conda convert "$host_package" -o "$out_dir" $CONDA_CONVERT_ARGS $platforms_options
+            command conda convert "$host_package" -o "$out_dir" $CONDA_CONVERT_ARGS $platforms_options
           fi
           if [ "$PLATFORM_HOST" != "true" ]; then
             rm "$host_package"
