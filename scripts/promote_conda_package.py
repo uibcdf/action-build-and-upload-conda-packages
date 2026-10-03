@@ -66,7 +66,8 @@ def promote_exact_package(
 ) -> dict:
     """Adding a target label only after exact source and digest verification."""
 
-    parse_exact_spec(package.full_name)
+    if parse_exact_spec(package.full_name) != package:
+        raise ValueError("package coordinates must be canonical strings")
     if source_label == target_label:
         raise ValueError("source and target labels must differ")
     if not LABEL.fullmatch(source_label) or not LABEL.fullmatch(target_label):

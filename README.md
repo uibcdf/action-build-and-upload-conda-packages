@@ -248,6 +248,11 @@ public file and labels before deciding any recovery action. Implementation and
 offline qualification are in `scripts/withdraw_conda_package.py` and
 `tests/test_withdraw_conda_package.py`.
 
+Label operations accept coordinate segments up to 255 characters and public
+records with at most 64 unique canonical labels of up to 128 characters each.
+Incomplete, contradictory or oversized metadata fails before an unproven write;
+these limits also bound the withdrawal receipt.
+
 ## What changed in v2.0.3
 
 The action no longer runs a second complete `conda build --output` render after a

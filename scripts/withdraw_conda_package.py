@@ -50,7 +50,8 @@ def withdraw_exact_package(
 ) -> dict:
     """Verify archive visibility before one exact removal, then verify every label."""
     # Validate even directly constructed dataclasses: missing coordinates broaden API writes.
-    parse_exact_spec(package.full_name)
+    if parse_exact_spec(package.full_name) != package:
+        raise ValueError("package coordinates must be canonical strings")
     if source_label == archive_label:
         raise ValueError("source and archive labels must differ")
     if not LABEL.fullmatch(source_label) or not LABEL.fullmatch(archive_label):

@@ -141,6 +141,11 @@ class WithdrawalTests(unittest.TestCase):
                 )
             },
             {"expected_sha256": "A" * 64},
+            {
+                "package": ExactPackage(
+                    "uibcdf", None, "1.2.3", "noarch/None-1.2.3-py_0.conda"
+                )
+            },
             {"source_label": "main;command"},
             {"archive_label": "main"},
         ):
@@ -179,6 +184,12 @@ class WithdrawalTests(unittest.TestCase):
             {"distributions": [record, record]},
             {"distributions": [dict(record, labels=["main", "main"])]},
             {"distributions": [dict(record, labels="main")]},
+            {"distributions": [dict(record, labels=["x" * 129])]},
+            {
+                "distributions": [
+                    dict(record, labels=[f"label-{index}" for index in range(65)])
+                ]
+            },
             {"distributions": [dict(record, basename="noarch/other.conda")]},
         ):
             with self.subTest(document=document):

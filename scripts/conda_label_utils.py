@@ -28,7 +28,8 @@ class ExactPackage:
 def parse_exact_spec(value: str) -> ExactPackage:
     parts = value.split("/")
     if len(parts) != 5 or any(
-        _FIELD.fullmatch(part) is None or part in {".", ".."} for part in parts
+        len(part) > 255 or _FIELD.fullmatch(part) is None or part in {".", ".."}
+        for part in parts
     ):
         raise ValueError(
             "package spec must be exact safe owner/package/version/subdir/filename"
@@ -70,7 +71,13 @@ def exact_distribution(api, package: ExactPackage) -> dict | None:
     labels = item.get("labels")
     if (
         not isinstance(labels, list)
-        or any(not isinstance(label, str) or not label for label in labels)
+        or len(labels) > 64
+        or any(
+            not isinstance(label, str)
+            or len(label) > 128
+            or LABEL.fullmatch(label) is None
+            for label in labels
+        )
         or len(set(labels)) != len(labels)
     ):
         raise RuntimeError("public distribution labels are incomplete")
