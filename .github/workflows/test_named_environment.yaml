@@ -29,13 +29,18 @@ jobs:
         shell: bash -el {0}
     steps:
       - uses: actions/checkout@v7
+      - name: Select the environment name in the fixture
+        env:
+          SELECTED_ENVIRONMENT: ${{ matrix.environment }}
+        run: |
+          sed "s/^name:.*/name: $SELECTED_ENVIRONMENT/" .github/conda-envs/named_build.yaml > .github/conda-envs/selected_build.yaml
       - name: Create the selected build environment
         uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3
         with:
           miniforge-version: latest
-          environment-file: .github/conda-envs/named_build.yaml
+          environment-file: .github/conda-envs/selected_build.yaml
           activate-environment: ${{ matrix.environment }}
-          auto-activate-base: false
+          auto-activate: true
           channels: conda-forge
           channel-priority: strict
       - name: Verify build interpreter and manager boundary
@@ -92,12 +97,17 @@ jobs:
           assert len(evidence['events']) == 1
           assert evidence['events'][0]['upload'] == 'not_requested'
           PY
-      - name: Retain archive and structured producer evidence
+      - name: Retain structured producer evidence
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
-          name: active-conda-${{ strategy.job-index }}
-          path: |
-            ${{ steps.build.outputs.built_paths }}
-            ${{ steps.build.outputs.evidence_path }}
+          name: active-conda-evidence-${{ strategy.job-index }}
+          path: ${{ steps.build.outputs.evidence_path }}
+          if-no-files-found: error
+          retention-days: 7
+      - name: Retain the tested archive
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: active-conda-package-${{ strategy.job-index }}
+          path: ${{ steps.build.outputs.built_paths }}
           if-no-files-found: error
           retention-days: 7

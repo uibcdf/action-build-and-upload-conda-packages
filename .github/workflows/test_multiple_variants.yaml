@@ -78,6 +78,20 @@ jobs:
           else
             host_platform=linux-64
           fi
+          python - <<'PYCODE'
+          import os
+          import pathlib
+          import tarfile
+          for filename in os.environ['BUILT_PATHS'].split():
+              path = pathlib.Path(filename)
+              with tarfile.open(path) as archive:
+                  modules = [member for member in archive.getmembers() if member.name.endswith('/action_multiple_variants_fixture.py')]
+                  assert len(modules) == 1, (path.name, [member.name for member in modules])
+                  source = archive.extractfile(modules[0]).read()
+                  namespace = {}
+                  exec(compile(source, modules[0].name, 'exec'), namespace)
+                  assert namespace['__version__'] == '0.1.0'
+          PYCODE
           test_root="$(mktemp -d -t variant-tests-XXXXXXXXXX)"
           index=0
           for package_path in "${built_paths[@]}"; do
