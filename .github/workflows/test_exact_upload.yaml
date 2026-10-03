@@ -6,12 +6,16 @@ on:
       - scripts/upload_conda_package.py
       - upload/action.yml
       - tests/test_upload_conda_package.py
+      - tests/test_upload_composite.py
+      - tests/fixtures/exact-upload/**
       - .github/workflows/test_exact_upload.yaml
   pull_request:
     paths:
       - scripts/upload_conda_package.py
       - upload/action.yml
       - tests/test_upload_conda_package.py
+      - tests/test_upload_composite.py
+      - tests/fixtures/exact-upload/**
       - .github/workflows/test_exact_upload.yaml
 permissions:
   contents: read
@@ -27,4 +31,72 @@ jobs:
         with:
           python-version: '3.13'
       - name: Reject unsafe exact-file upload paths without publishing
-        run: python -m unittest discover -s tests -p test_upload_conda_package.py -v
+        run: python -m unittest discover -s tests -p 'test_upload*.py' -v
+
+  named-publisher-composite:
+    name: Actual upload composite / ${{ matrix.os }} / ${{ matrix.mode }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-15]
+        mode: [success, write_failure]
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3
+        with:
+          miniforge-version: latest
+          environment-file: tests/fixtures/exact-upload/environment.yaml
+          activate-environment: exact-upload-publisher
+          auto-activate: true
+      - name: Prepare offline client in the named publisher
+        id: fixture
+        env:
+          FIXTURE_MODE: ${{ matrix.mode }}
+        run: |
+          set -euo pipefail
+          python -c "import os, pathlib, sys; assert pathlib.Path(sys.prefix).resolve() == pathlib.Path(os.environ['CONDA_PREFIX']).resolve(); assert pathlib.Path(sys.prefix).name == 'exact-upload-publisher'"
+          python tests/fixtures/exact-upload/fixture.py prepare \
+            --root "$RUNNER_TEMP/offline upload" \
+            --client-bin "$CONDA_PREFIX/bin" --mode "$FIXTURE_MODE"
+      - name: Execute the actual exact-upload subaction offline
+        id: upload
+        continue-on-error: true
+        uses: ./upload
+        with:
+          artifact: ${{ steps.fixture.outputs.artifact }}
+          package-spec: uibcdf/example/1.2.3/noarch/example-1.2.3-py_0.tar.bz2
+          expected-sha256: ${{ steps.fixture.outputs.sha256 }}
+          candidate-sha: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          label: staging
+          token: offline-test-token
+      - name: Verify outcome, sealed bytes, mutation count and bounded receipt
+        if: always() && steps.fixture.outcome == 'success'
+        env:
+          FIXTURE_MODE: ${{ matrix.mode }}
+          UPLOAD_OUTCOME: ${{ steps.upload.outcome }}
+          RECEIPT: ${{ steps.upload.outputs.receipt }}
+        run: |
+          set -euo pipefail
+          expected_outcome=success
+          if [ "$FIXTURE_MODE" = write_failure ]; then expected_outcome=failure; fi
+          test "$UPLOAD_OUTCOME" = "$expected_outcome"
+          python tests/fixtures/exact-upload/fixture.py verify \
+            --root "$OFFLINE_UPLOAD_ROOT" --receipt "$RECEIPT"
+      - name: Retain offline qualification evidence
+        if: always() && steps.upload.outputs.receipt != ''
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: exact-upload-offline-${{ strategy.job-index }}
+          path: |
+            ${{ steps.upload.outputs.receipt }}
+            ${{ runner.temp }}/offline upload/calls.jsonl
+            ${{ runner.temp }}/offline upload/reads
+          if-no-files-found: error
+          retention-days: 7

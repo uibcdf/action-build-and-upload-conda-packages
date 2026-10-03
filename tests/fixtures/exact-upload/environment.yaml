@@ -1,0 +1,6 @@
+name: exact-upload-publisher
+channels:
+  - conda-forge
+dependencies:
+  - python=3.13
+  - anaconda-client

@@ -88,6 +88,13 @@ publishing environment supplies its client. Failed receipts retain the exception
 type without exception text or raw client output; inspect the exact registry
 coordinate before any further mutation (provider issue #48).
 
+The exact-upload CI invokes the complete `upload` composite in named Conda
+environments on Linux and macOS with an offline client and registry. It checks
+sealed candidate bytes, a single client invocation, public poststate verification,
+and retained safe diagnostics after a failed write. No package is published by
+these qualification runs. A local regression also reproduces the previous
+non-login shell's missing-client failure.
+
 ```yaml
 - id: upload_exact
   uses: uibcdf/action-build-and-upload-conda-packages/upload@<reviewed-full-commit>
