@@ -78,21 +78,13 @@ jobs:
           else
             host_platform=linux-64
           fi
-          NATIVE_BUILT_PATHS=""
-          for package_path in "${built_paths[@]}"; do
-            if [[ "$RUNNER_OS" == "Windows" ]]; then
-              native_path="$(cygpath -w "$package_path")"
-            else
-              native_path="$package_path"
-            fi
-            NATIVE_BUILT_PATHS+="$native_path"$'\n'
-          done
-          export NATIVE_BUILT_PATHS
-          python - <<'PYCODE'
-          import os
+          # Pass paths as arguments so the launching MSYS shell converts them
+          # with its own mount table, as the action's JSON transport does.
+          python - "${built_paths[@]}" <<'PYCODE'
           import pathlib
+          import sys
           import tarfile
-          for filename in os.environ['NATIVE_BUILT_PATHS'].splitlines():
+          for filename in sys.argv[1:]:
               path = pathlib.Path(filename)
               with tarfile.open(path) as archive:
                   modules = [member for member in archive.getmembers() if member.name.endswith('/action_multiple_variants_fixture.py')]
@@ -123,14 +115,10 @@ jobs:
             # Select the installed interpreter explicitly and prove its identity.
             if [[ "$RUNNER_OS" == "Windows" ]]; then
               test_python="$test_prefix/python.exe"
-              EXPECTED_PREFIX="$(cygpath -w "$test_prefix")"
             else
               test_python="$test_prefix/bin/python"
-              EXPECTED_PREFIX="$test_prefix"
             fi
-            export EXPECTED_PREFIX
-            export EXPECTED_PYTHON="$python_version"
-            conda run --prefix "$test_prefix" "$test_python" -c "import os, pathlib, sys; print(sys.executable, sys.version); prefix = pathlib.Path(os.environ['EXPECTED_PREFIX']).resolve(); assert pathlib.Path(sys.prefix).resolve() == prefix; assert sys.version_info[:2] == tuple(map(int, os.environ['EXPECTED_PYTHON'].split('.'))); import action_multiple_variants_fixture as fixture; assert fixture.__version__ == '0.1.0'; assert pathlib.Path(fixture.__file__).resolve().is_relative_to(prefix)"
+            conda run --prefix "$test_prefix" "$test_python" -c "import pathlib, sys; print(sys.executable, sys.version); prefix = pathlib.Path(sys.argv[1]).resolve(); assert pathlib.Path(sys.prefix).resolve() == prefix; assert sys.version_info[:2] == tuple(map(int, sys.argv[2].split('.'))); import action_multiple_variants_fixture as fixture; assert fixture.__version__ == '0.1.0'; assert pathlib.Path(fixture.__file__).resolve().is_relative_to(prefix)" "$test_prefix" "$python_version"
             index=$((index + 1))
           done
           test "$index" -eq 2
