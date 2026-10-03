@@ -185,10 +185,12 @@ def main() -> int:
             args.candidate_sha,
         )
         status = 0
-    except (OSError, ValueError, RuntimeError, subprocess.SubprocessError):
+    except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
         receipt = {
             "schema": "uibcdf.conda-upload@1",
             "state": "unverified",
+            # Type names are safe; exception text and client output may carry secrets.
+            "error_type": type(error).__name__,
             "instruction": "Inspect the exact public coordinate before any further mutation.",
         }
         status = 1
@@ -200,6 +202,8 @@ def main() -> int:
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
     print(f"Exact-file upload state: {receipt['state']}")
+    if "error_type" in receipt:
+        print(f"Exact-file upload error type: {receipt['error_type']}")
     return status
 
 

@@ -1,7 +1,12 @@
 """An artifact inspection must not be invalidated by a second build or upload."""
 
 import hashlib
+import json
 import os
+import re
+import shlex
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -139,6 +144,55 @@ class ExactUploadTests(unittest.TestCase):
         self.assertNotIn("--force", arguments)
         self.assertEqual(arguments[:2], ["anaconda", "upload"])
 
+    @unittest.skipIf(os.name == "nt", "POSIX publisher shell reproduction")
+    def test_composite_activates_the_publisher_client_before_upload(self):
+        root = Path(__file__).resolve().parents[1]
+        shell = re.search(
+            r"^\s+shell: (.+)$", (root / "upload/action.yml").read_text(), re.M
+        ).group(1)
+        directory = Path(self.directory.name)
+        publisher = directory / "publisher-bin"
+        publisher.mkdir()
+        marker = directory / "upload-called"
+        client = publisher / "anaconda"
+        client.write_text('#!/bin/sh\n: > "$UPLOAD_MARKER"\n')
+        client.chmod(0o755)
+        profile = directory / "activate-publisher.sh"
+        profile.write_text(
+            'if shopt -q login_shell; then\n'
+            '  export PATH="$PUBLISHER_BIN:$PATH"\n'
+            'fi\n'
+        )
+        driver = directory / "upload-step.sh"
+        driver.write_text(
+            '"$TEST_PYTHON" - <<\'PY\'\n'
+            'from pathlib import Path\n'
+            'from scripts.upload_conda_package import upload_file, parse_coordinate\n'
+            f'upload_file(Path({str(self.path)!r}), parse_coordinate({SPEC!r}), "staging")\n'
+            'PY\n'
+        )
+        environment = dict(
+            os.environ,
+            BASH_ENV=str(profile),
+            PUBLISHER_BIN=str(publisher),
+            UPLOAD_MARKER=str(marker),
+            TEST_PYTHON=sys.executable,
+            ANACONDA_API_TOKEN="offline-test-token",
+            # The non-login step cannot find an ambient real write client.
+            PATH=str(directory / "empty-bin"),
+        )
+        arguments = shlex.split(shell)
+        arguments[0] = "/bin/bash"
+        if "{0}" in arguments:
+            arguments[arguments.index("{0}")] = str(driver)
+        else:
+            arguments.append(str(driver))
+        result = subprocess.run(
+            arguments, cwd=root, env=environment, capture_output=True, text=True
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(marker.is_file())
+
     def test_failed_cli_retains_a_receipt_without_exposing_exception_details(self):
         from scripts.upload_conda_package import main
 
@@ -169,6 +223,7 @@ class ExactUploadTests(unittest.TestCase):
         ):
             self.assertEqual(main(), 1)
         self.assertIn("unverified", receipt.read_text())
+        self.assertEqual(json.loads(receipt.read_text())["error_type"], "RuntimeError")
         self.assertNotIn("private-test-token", receipt.read_text())
         self.assertIn("receipt=", outputs.read_text())
 

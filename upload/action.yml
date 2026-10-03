@@ -28,7 +28,7 @@ runs:
   steps:
     - id: upload
       name: Upload and observe the exact file
-      shell: bash
+      shell: bash -l {0}
       env:
         ARTIFACT: ${{ inputs.artifact }}
         PACKAGE_SPEC: ${{ inputs.package-spec }}

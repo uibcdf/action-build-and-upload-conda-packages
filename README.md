@@ -83,6 +83,11 @@ Pin the subaction to the reviewed full commit that supplies it. The caller must
 provide Python and `anaconda-client`, validate its recipe/artifact/source identity
 and select an authorized route before invoking the operation:
 
+The upload step uses a login shell, like build and promotion, so the configured
+publishing environment supplies its client. Failed receipts retain the exception
+type without exception text or raw client output; inspect the exact registry
+coordinate before any further mutation (provider issue #48).
+
 ```yaml
 - id: upload_exact
   uses: uibcdf/action-build-and-upload-conda-packages/upload@<reviewed-full-commit>
