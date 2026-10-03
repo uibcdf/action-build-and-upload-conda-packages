@@ -39,11 +39,14 @@ runs:
       id: promote
       shell: bash -l {0}
       env:
+        PACKAGE_SPEC: ${{ inputs.package-spec }}
+        EXPECTED_SHA256: ${{ inputs.expected-sha256 }}
+        FROM_LABEL: ${{ inputs.from-label }}
+        TO_LABEL: ${{ inputs.to-label }}
         ANACONDA_API_TOKEN: ${{ inputs.token }}
-      run: >-
-        python "$GITHUB_ACTION_PATH/../scripts/promote_conda_package.py"
-        --package-spec "${{ inputs.package-spec }}"
-        --expected-sha256 "${{ inputs.expected-sha256 }}"
-        --from-label "${{ inputs.from-label }}"
-        --to-label "${{ inputs.to-label }}"
-        --output "$RUNNER_TEMP/conda-promotion-receipt.json"
+      run: |
+        set -euo pipefail
+        python "$GITHUB_ACTION_PATH/../scripts/promote_conda_package.py" \
+          --package-spec "$PACKAGE_SPEC" --expected-sha256 "$EXPECTED_SHA256" \
+          --from-label "$FROM_LABEL" --to-label "$TO_LABEL" \
+          --output "$RUNNER_TEMP/conda-promotion-receipt.json"

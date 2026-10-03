@@ -1,5 +1,6 @@
 name: Upload an exact validated Conda artifact
 description: Upload one existing digest-bound file once, without rebuilding or converting
+author: UIBCDF Development Team
 inputs:
   artifact:
     required: true

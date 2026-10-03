@@ -1,0 +1,97 @@
+name: Test exact label operations
+on:
+  push:
+    paths:
+      - scripts/conda_label_utils.py
+      - scripts/promote_conda_package.py
+      - scripts/withdraw_conda_package.py
+      - promote/action.yml
+      - withdraw/action.yml
+      - tests/test_promote_conda_package.py
+      - tests/test_withdraw_conda_package.py
+      - tests/fixtures/label-operations/**
+      - .github/workflows/test_label_operations.yaml
+  pull_request:
+    paths:
+      - scripts/conda_label_utils.py
+      - scripts/promote_conda_package.py
+      - scripts/withdraw_conda_package.py
+      - promote/action.yml
+      - withdraw/action.yml
+      - tests/test_promote_conda_package.py
+      - tests/test_withdraw_conda_package.py
+      - tests/fixtures/label-operations/**
+      - .github/workflows/test_label_operations.yaml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-withdrawal:
+    name: Actual withdrawal / ${{ matrix.os }} / ${{ matrix.mode }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-15, windows-latest]
+        mode: [success, archive_failure]
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: mamba-org/setup-micromamba@v3.2.1
+        with:
+          environment-name: label-operation-publisher
+          create-args: >-
+            python=3.13
+            anaconda-client
+          condarc: |
+            channels:
+              - conda-forge
+            channel_priority: strict
+      - name: Test exact upload, promotion and withdrawal contracts offline
+        run: python -m unittest discover -s tests -p 'test_*conda_package.py' -v
+      - name: Prepare offline registry transport for the installed client
+        id: fixture
+        env:
+          FIXTURE_MODE: ${{ matrix.mode }}
+        run: |
+          set -euo pipefail
+          python -c "import pathlib, sys; assert pathlib.Path(sys.prefix).name == 'label-operation-publisher'"
+          python tests/fixtures/label-operations/fixture.py prepare \
+            --root "$RUNNER_TEMP/offline labels" --mode "$FIXTURE_MODE"
+      - name: Execute the actual withdrawal subaction offline
+        id: withdraw
+        continue-on-error: true
+        uses: ./withdraw
+        with:
+          package-spec: uibcdf/example/1.2.3/noarch/example-1.2.3-py_0.conda
+          expected-sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          token: offline-label-token
+      - name: Verify exact mutation scope, archive observation and receipt
+        if: always() && steps.fixture.outcome == 'success'
+        env:
+          FIXTURE_MODE: ${{ matrix.mode }}
+          WITHDRAW_OUTCOME: ${{ steps.withdraw.outcome }}
+          RECEIPT: ${{ steps.withdraw.outputs.receipt }}
+        run: |
+          set -euo pipefail
+          expected_outcome=success
+          if [ "$FIXTURE_MODE" = archive_failure ]; then expected_outcome=failure; fi
+          test "$WITHDRAW_OUTCOME" = "$expected_outcome"
+          python tests/fixtures/label-operations/fixture.py verify \
+            --root "$OFFLINE_LABEL_ROOT" --receipt "$RECEIPT"
+      - name: Retain offline qualification evidence
+        if: always() && steps.withdraw.outputs.receipt != ''
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: exact-withdrawal-offline-${{ strategy.job-index }}
+          path: |
+            ${{ steps.withdraw.outputs.receipt }}
+            ${{ runner.temp }}/offline labels/calls.jsonl
+            ${{ runner.temp }}/offline labels/registry.json
+          if-no-files-found: error
+          retention-days: 7

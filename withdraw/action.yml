@@ -1,0 +1,52 @@
+name: Withdraw an exact conda package
+description: Archive one digest-verified file before removing its source Anaconda.org label
+author: UIBCDF Development Team
+branding:
+  icon: package
+  color: orange
+inputs:
+  package-spec:
+    description: Exact owner/package/version/subdir/filename identity
+    required: true
+  expected-sha256:
+    description: Expected lowercase SHA-256 digest of the existing file
+    required: true
+  from-label:
+    description: Label to withdraw from this exact file
+    required: false
+    default: main
+  archive-label:
+    description: Label that must preserve this file before source removal
+    required: false
+    default: withdrawn
+  token:
+    description: Anaconda.org credential allowed to change labels
+    required: true
+outputs:
+  package:
+    description: Exact verified withdrawn package identity
+    value: ${{ steps.withdraw.outputs.package }}
+  sha256:
+    description: Verified package digest
+    value: ${{ steps.withdraw.outputs.sha256 }}
+  receipt:
+    description: Bounded withdrawal receipt, including unverified outcomes
+    value: ${{ steps.withdraw.outputs.receipt }}
+runs:
+  using: composite
+  steps:
+    - id: withdraw
+      name: Archive, withdraw and verify the exact file
+      shell: bash -l {0}
+      env:
+        PACKAGE_SPEC: ${{ inputs.package-spec }}
+        EXPECTED_SHA256: ${{ inputs.expected-sha256 }}
+        FROM_LABEL: ${{ inputs.from-label }}
+        ARCHIVE_LABEL: ${{ inputs.archive-label }}
+        ANACONDA_API_TOKEN: ${{ inputs.token }}
+      run: |
+        set -euo pipefail
+        python "$GITHUB_ACTION_PATH/../scripts/withdraw_conda_package.py" \
+          --package-spec "$PACKAGE_SPEC" --expected-sha256 "$EXPECTED_SHA256" \
+          --from-label "$FROM_LABEL" --archive-label "$ARCHIVE_LABEL" \
+          --output "$RUNNER_TEMP/conda-withdrawal-receipt.json"

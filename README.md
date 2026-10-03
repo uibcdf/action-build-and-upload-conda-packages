@@ -17,6 +17,8 @@
 
 ## Content
 - [About](#about)
+- [Withdraw an exact published file](#withdraw-an-exact-published-file)
+- [Compatibility and deprecated inputs](#compatibility-and-deprecated-inputs)
 - [Requirements](#requirements)
   - [Conda-build recipe](#conda-build-recipe)
   - [Conda build environment](#conda-build-environment)
@@ -30,6 +32,7 @@
   - [Additional command line arguments](#additional-command-line-arguments)
 - [Outputs](#outputs)
 - [Examples](#examples)
+- [Development and testing](#development-and-testing)
 - [Acknowledgements](#acknowledgements)
 
 ## About
@@ -56,6 +59,43 @@ publication rules belongs in [MOLI issues](https://github.com/uibcdf/moli/issues
 suite-specific adoption belongs in [MolSysSuite issues](https://github.com/uibcdf/molsyssuite/issues).
 Keep credentials and sensitive evidence out of public issues; use private security
 reporting for exploitable findings. Filing feedback does not promise immediate delivery.
+
+## What changed in v2.3.0
+
+- A `withdraw` subaction archives one exact digest-verified file before removing its
+  source label, and verifies the complete resulting label set (#44).
+- Exact upload selects the named publishing environment with a login shell and
+  retains safe failure diagnostics. Complete-composite offline qualification runs
+  on Linux and macOS (#48).
+- Platform conversion rejects `.conda` archives with an actionable error before
+  converting or removing any host variant; builds without conversion still support
+  both archive formats (#25).
+- `mambabuild` and `overwrite` are deprecated compatibility inputs retained in v2.
+  Their removal is planned for v3 (#39, #28).
+- Action metadata credits the UIBCDF Development Team and the README links the
+  full contributors list (#22).
+
+## Compatibility and deprecated inputs
+
+Version 2 retains existing inputs. GitHub logs a deprecation warning when a caller
+supplies `mambabuild` or `overwrite`.
+
+Boa is [archived and superseded by rattler-build](https://github.com/mamba-org/boa).
+Omit `mambabuild` to use the maintained `conda build` route. Recipes for another
+builder require a separate migration; this action does not silently reinterpret
+`meta.yaml` as a rattler-build recipe. Existing callers that deliberately select
+Boa can still use their installed plugin in v2.
+
+`overwrite: true` passes `--force` to `anaconda upload`; it does not only handle
+duplicate filenames. Omit `overwrite` when migrating to the explicit equivalent:
+
+```yaml
+anaconda_upload_args: --force
+```
+
+Do not specify both forms. The `upload` exact-file subaction always rejects an
+occupied coordinate and never uses force. Removing these compatibility inputs is
+reserved for v3; existing version tags remain unchanged.
 
 ## What changed in v2.1.0
 
@@ -164,6 +204,50 @@ Version 2.2.2 reads exact file metadata and labels from the public release endpo
 ambient credentials explicitly discarded. The upload-scoped token is reserved for the
 label mutation.
 
+## Withdraw an exact published file
+
+The `withdraw` subaction removes one file from a selected source label after
+observing that the same digest-verified file is retained under an archive label.
+The defaults are `from-label: main` and `archive-label: withdrawn`. Python and
+`anaconda-client` must already be installed in the publishing environment.
+
+```yaml
+- name: Withdraw the reviewed defective artifact
+  id: withdraw
+  uses: uibcdf/action-build-and-upload-conda-packages/withdraw@v2.3.0
+  with:
+    package-spec: uibcdf/example/1.2.3/noarch/example-1.2.3-py_0.conda
+    expected-sha256: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    from-label: main
+    archive-label: withdrawn
+    token: ${{ secrets.ANACONDA_TOKEN }}
+- name: Retain the withdrawal receipt
+  if: ${{ always() && steps.withdraw.outputs.receipt != '' }}
+  uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+  with:
+    name: conda-withdrawal-receipt
+    path: ${{ steps.withdraw.outputs.receipt }}
+```
+
+Every add/remove call supplies owner, package, version and exact subdirectory/file
+coordinates. Public metadata reads discard ambient credentials. The archive label
+must be observed with the expected SHA-256 before removal is attempted; afterward,
+the source must be absent, the archive present and all other original labels
+preserved. An already withdrawn exact file can be verified without mutation.
+
+The file is retained in Anaconda.org. The operation does not delete a distribution,
+remove a whole label or automatically withdraw its other labels. For example,
+withdrawing from `main` preserves a pre-existing `staging` label. The caller selects
+the exact route it intends to withdraw.
+
+The `package`, `sha256` and `receipt` outputs mirror promotion. The bounded JSON
+receipt uses `uibcdf.conda-withdrawal@1` and records the observed labels before and
+after success. Failure retains an `unverified` receipt, with no success outputs or
+raw exception text. An uncertain mutation is never retried; inspect the exact
+public file and labels before deciding any recovery action. Implementation and
+offline qualification are in `scripts/withdraw_conda_package.py` and
+`tests/test_withdraw_conda_package.py`.
+
 ## What changed in v2.0.3
 
 The action no longer runs a second complete `conda build --output` render after a
@@ -243,7 +327,7 @@ steps:
           show-channel-urls: true
       ...      
       - name: Build and upload the conda packages
-        uses: uibcdf/action-build-and-upload-conda-packages@v2.0.1
+        uses: uibcdf/action-build-and-upload-conda-packages@v2.3.0
         ...
 ```
 
@@ -342,7 +426,7 @@ jobs:
           auto-activate-base: false
           show-channel-urls: true
       - name: Build and upload the conda packages
-        uses: uibcdf/action-build-and-upload-conda-packages@v2.0.1
+        uses: uibcdf/action-build-and-upload-conda-packages@v2.3.0
         with:
           meta_yaml_dir: path/to/meta.yaml/directory # Replace with the path to your meta.yaml directory
           user: uibcdf # Replace with your Anaconda username (or an Anaconda organization username)
@@ -357,8 +441,8 @@ jobs:
 | ---------------- | ----------- | -------- | ------------- |
 | `meta_yaml_dir` | Path to the directory where the `meta.yaml` file is located. | Required | |
 | `upload` | Upload the built package to Anaconda. If set to `false`, the built package will not be uploaded to Anaconda.org. | Optional | `true` |
-| `overwrite` |  Do not abort the uploading if a package with the same name is already present in the Anaconda channel. | Optional | `false` |
-| `mambabuild` | Uses [`conda mambabuild` command](https://boa-build.readthedocs.io/en/stable/mambabuild.html) to build the packages. Requires [`mamba` setup](https://github.com/conda-incubator/setup-miniconda?tab=readme-ov-file#example-6-mamba). | Optional | `false` |
+| `overwrite` | Deprecated: passes `--force` to `anaconda upload` when true. Prefer an explicit `anaconda_upload_args: --force` when intentionally needed; removal planned for v3. | Optional | empty (no force) |
+| `mambabuild` | Deprecated: uses the installed Boa `conda mambabuild` plugin. Prefer the default `conda build` route; removal planned for v3. | Optional | `false` |
 | `user` | Name of the Anaconda.org channel where the package will be uploaded. | Optional | |
 | `token` | [Anaconda token](#anaconda-token) for the package uploading. | Optional |  |
 | `label` | Label of the uploaded package. | Optional | `main` |
@@ -412,6 +496,17 @@ Refer to the [Pass additional command-line arguments example](#pass-additional-c
 > or `noarch`. If your recipe builds a compiled extension, the `platform_*` inputs cannot
 > produce valid packages for those platforms from a single host build: build each platform
 > on its own runner instead.
+
+Platform conversion requires a `.tar.bz2` build. Specify
+`conda_build_args: --package-format 1` when enabling `platform_all` or additional
+`platform_*` conversion flags. If a successful build produces `.conda` files, the
+action stops before any conversion with instructions to select the compatible
+format. Without conversion, both `.conda` and `.tar.bz2` outputs are supported.
+For a platform-independent recipe, prefer `build: {noarch: python}` (or the
+appropriate `noarch: generic` recipe) and leave conversion flags disabled. Compiled
+extensions require actual target-platform builds. See the
+[conda convert reference](https://docs.conda.io/projects/conda-build/en/stable/resources/commands/conda-convert.html)
+and [noarch recipe documentation](https://docs.conda.io/projects/conda-build/en/stable/resources/define-metadata.html#building-noarch-packages).
 
 ## Outputs
 | Name | Description | 
@@ -494,7 +589,7 @@ jobs:
           auto-activate-base: false
           show-channel-urls: true
       - name: Build and upload the conda packages
-        uses: uibcdf/action-build-and-upload-conda-packages@v2.0.1
+        uses: uibcdf/action-build-and-upload-conda-packages@v2.3.0
         with:
           meta_yaml_dir: path/to/meta.yaml/directory # Replace with the path to your meta.yaml directory
           user: uibcdf # Replace with your Anaconda username (or an Anaconda organization username)
@@ -538,7 +633,7 @@ jobs:
           auto-activate-base: false
           show-channel-urls: true
       - name: Build and upload the conda packages
-        uses: uibcdf/action-build-and-upload-conda-packages@v2.0.1
+        uses: uibcdf/action-build-and-upload-conda-packages@v2.3.0
         with:
           meta_yaml_dir: path/to/meta.yaml/directory # Replace with the path to your meta.yaml directory
           user: uibcdf # Replace with your Anaconda username (or an Anaconda organization username)
@@ -585,7 +680,7 @@ jobs:
           auto-activate-base: false
           show-channel-urls: true
       - name: Build and upload the conda packages
-        uses: uibcdf/action-build-and-upload-conda-packages@v2.0.1
+        uses: uibcdf/action-build-and-upload-conda-packages@v2.3.0
         with:
           meta_yaml_dir: path/to/meta.yaml/directory # Replace with the path to your meta.yaml directory
           user: uibcdf # Replace with your Anaconda username (or an Anaconda organization username)
@@ -633,7 +728,7 @@ jobs:
           auto-activate-base: false
           show-channel-urls: true
       - name: Build and upload the conda packages
-        uses: uibcdf/action-build-and-upload-conda-packages@v2.0.1
+        uses: uibcdf/action-build-and-upload-conda-packages@v2.3.0
         with:
           meta_yaml_dir: path/to/meta.yaml/directory # Replace with the path to your meta.yaml directory
           user: uibcdf # Replace with your Anaconda username (or an Anaconda organization username)
@@ -716,7 +811,7 @@ jobs:
             label=main
           echo "label=$label" >> $GITHUB_OUTPUT
       - name: Build and upload the conda packages
-        uses: uibcdf/action-build-and-upload-conda-packages@v2.0.1
+        uses: uibcdf/action-build-and-upload-conda-packages@v2.3.0
         with:
           meta_yaml_dir: path/to/meta.yaml/directory # Replace with the path to your meta.yaml directory
           user: uibcdf # Replace with your Anaconda username (or an Anaconda organization username)
@@ -753,7 +848,7 @@ jobs:
           show-channel-urls: true
       - name: Build and upload the conda packages
         id: conda-build-and-upload
-        uses: uibcdf/action-build-and-upload-conda-packages@v2.0.1
+        uses: uibcdf/action-build-and-upload-conda-packages@v2.3.0
         with:
           meta_yaml_dir: path/to/meta.yaml/directory # Replace with the path to your meta.yaml directory
           user: uibcdf # Replace with your Anaconda username (or an Anaconda organization username)
@@ -806,7 +901,7 @@ jobs:
           auto-activate-base: false
           show-channel-urls: true
       - name: Build and upload the conda packages
-        uses: uibcdf/action-build-and-upload-conda-packages@v2.0.1
+        uses: uibcdf/action-build-and-upload-conda-packages@v2.3.0
         with:
           meta_yaml_dir: path/to/meta.yaml/directory # Replace with the path to your meta.yaml directory
           user: uibcdf # Replace with your Anaconda username (or an Anaconda organization username)
@@ -814,6 +909,35 @@ jobs:
           upload: false
 ```
 </details>
+
+## Development and testing
+
+Run the offline tests in a Python environment with `anaconda-client` and `pyyaml`:
+
+```bash
+conda create --yes --name action-tests --channel conda-forge python=3.13 anaconda-client pyyaml
+conda activate action-tests
+python -m unittest discover -s tests -v
+```
+
+The tests simulate the client and registry; they never publish or withdraw real
+packages. POSIX shell reproductions run locally on Linux and macOS. Hosted Windows
+coverage uses GitHub Actions with its configured Bash and Conda setup.
+
+The workflows in `.github/workflows` exercise the actual checkout-local composite
+actions on GitHub-hosted runners. The named-environment fixture builds a real
+`noarch` package and runs recipe tests. The multiple-variant fixture inspects every
+converted payload and imports both host variants using their installed Python
+interpreters. Exact-upload qualification invokes the complete subaction with an
+offline client/registry, including unsuccessful writes. Label-operation tests
+verify exact API arguments and archive-before-withdraw ordering without real
+registry writes.
+
+For manual testing, push a development commit and inspect those workflow runs, or
+dispatch the named-environment/multiple-variant workflows. Use `upload: false` for
+real build fixtures and retain `built_paths` and producer evidence. A green fixture
+run qualifies the tested contract; independent publication and installation
+evidence remains the consumer's responsibility.
 
 ## Acknowledgements
 

@@ -5,16 +5,28 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import re
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
 from binstar_client import Binstar
 from binstar_client.utils import get_server_api
 
-_SHA256 = re.compile(r"[0-9a-f]{64}")
-_LABEL = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
+if __package__:
+    from .conda_label_utils import (
+        LABEL,
+        SHA256,
+        ExactPackage,
+        exact_distribution,
+        parse_exact_spec,
+    )
+else:
+    from conda_label_utils import (
+        LABEL,
+        SHA256,
+        ExactPackage,
+        exact_distribution,
+        parse_exact_spec,
+    )
 
 
 class AnacondaAPI(Protocol):
@@ -32,54 +44,9 @@ class AnacondaAPI(Protocol):
     ) -> None: ...
 
 
-@dataclass(frozen=True)
-class ExactPackage:
-    """Identifying one immutable Anaconda.org distribution file."""
-
-    owner: str
-    package: str
-    version: str
-    basename: str
-
-    @property
-    def full_name(self) -> str:
-        return f"{self.owner}/{self.package}/{self.version}/{self.basename}"
-
-
-def parse_exact_spec(value: str) -> ExactPackage:
-    """Parsing owner/package/version/subdir/filename without broad selectors."""
-
-    parts = value.split("/")
-    if len(parts) != 5 or not all(parts):
-        raise ValueError("package spec must be owner/package/version/subdir/filename")
-    owner, package, version, subdir, filename = parts
-    for field_name, field in (
-        ("owner", owner),
-        ("package", package),
-        ("version", version),
-        ("subdir", subdir),
-        ("filename", filename),
-    ):
-        if field in {".", ".."} or any(char.isspace() for char in field):
-            raise ValueError(f"unsafe {field_name} in package spec")
-    if not filename.endswith((".conda", ".tar.bz2")):
-        raise ValueError("package filename must end in .conda or .tar.bz2")
-    return ExactPackage(owner, package, version, f"{subdir}/{filename}")
-
-
 def _exact_file(api: AnacondaAPI, label: str, package: ExactPackage) -> dict | None:
-    release = api.release(package.owner, package.package, package.version)
-    matches = [
-        item
-        for item in release.get("distributions", [])
-        if item.get("full_name") == package.full_name
-        and label in item.get("labels", [])
-    ]
-    if len(matches) > 1:
-        raise RuntimeError(
-            f"label {label!r} returned duplicate identity {package.full_name!r}"
-        )
-    return matches[0] if matches else None
+    item = exact_distribution(api, package)
+    return item if item is not None and label in item["labels"] else None
 
 
 def _public_api() -> AnacondaAPI:
@@ -99,11 +66,12 @@ def promote_exact_package(
 ) -> dict:
     """Adding a target label only after exact source and digest verification."""
 
+    parse_exact_spec(package.full_name)
     if source_label == target_label:
         raise ValueError("source and target labels must differ")
-    if not _LABEL.fullmatch(source_label) or not _LABEL.fullmatch(target_label):
+    if not LABEL.fullmatch(source_label) or not LABEL.fullmatch(target_label):
         raise ValueError("source and target labels must use safe label names")
-    if not _SHA256.fullmatch(expected_sha256):
+    if not SHA256.fullmatch(expected_sha256):
         raise ValueError(
             "expected SHA-256 must contain exactly 64 lowercase hex digits"
         )

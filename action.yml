@@ -1,6 +1,6 @@
 name: 'Build and upload conda packages'
-description: 'Automatic conda package compilation and publication in the speficied Anaconda user or organization.'
-author: "Diego Prada-Gracia"
+description: 'Automatic conda package compilation and publication for the specified Anaconda user or organization.'
+author: "UIBCDF Development Team"
 branding:
   icon: "package"
   color: "orange"
@@ -9,7 +9,8 @@ inputs:
     description: Path to the directory in the repository where the meta.yaml file is located.
     required: true
   mambabuild:
-    description: Using boa (mambabuild) to build the packages.
+    description: Deprecated compatibility input for building with the archived Boa mambabuild plugin; removal planned for v3.
+    deprecationMessage: 'mambabuild is deprecated and will be removed in v3. Use conda build with mambabuild omitted or false.'
     required: false
     default: false
   platform_host:
@@ -73,7 +74,8 @@ inputs:
     required: false
     default: true
   overwrite:
-    description: Do not cancel the uploading if a package with the same name is found already in Anaconda.
+    description: Deprecated compatibility input that passes --force to anaconda upload; removal planned for v3.
+    deprecationMessage: 'overwrite is deprecated and will be removed in v3. When deliberately needed, pass --force through anaconda_upload_args instead.'
     required: false
     default: ''
   user:
@@ -282,6 +284,15 @@ runs:
             platforms_options+=" -p $platform"
           fi
         done
+        if [ -n "$platforms_options" ]; then
+          # Validate every archive before conversion or removal of any host variant.
+          for host_package in "${host_packages[@]}"; do
+            if [[ "$host_package" == *.conda ]]; then
+              echo "::error::conda convert requires .tar.bz2 archives. Set conda_build_args: --package-format 1, or use a noarch recipe without platform conversion."
+              exit 1
+            fi
+          done
+        fi
         for host_package in "${host_packages[@]}"; do
           if [ -n "$platforms_options" ]; then
             echo "conda convert $host_package -o $out_dir $CONDA_CONVERT_ARGS$platforms_options"

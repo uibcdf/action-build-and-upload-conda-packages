@@ -14,7 +14,16 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class CompilationEnvironmentTests(unittest.TestCase):
-    def _compile(self, root, *, shadow=True, mambabuild=False, fail_command=""):
+    def _compile(
+        self,
+        root,
+        *,
+        shadow=True,
+        mambabuild=False,
+        fail_command="",
+        host_format=".tar.bz2",
+        convert=True,
+    ):
         step = next(
             step
             for step in yaml.safe_load((ROOT / "action.yml").read_text())["runs"][
@@ -38,7 +47,7 @@ class CompilationEnvironmentTests(unittest.TestCase):
             "else:\n"
             "    output = pathlib.Path(args[args.index('-o') + 1]) / 'osx-arm64'\n"
             "output.mkdir(parents=True, exist_ok=True)\n"
-            "(output / 'example-1.0-py_0.tar.bz2').write_bytes(b'artifact')\n"
+            "(output / ('example-1.0-py_0' + os.environ['HOST_FORMAT'])).write_bytes(b'artifact')\n"
         )
         executable.chmod(0o755)
         initializer = root / "initialize.sh"
@@ -64,7 +73,8 @@ class CompilationEnvironmentTests(unittest.TestCase):
             GITHUB_OUTPUT=str(output),
             MAMBABUILD=str(mambabuild).lower(),
             PLATFORM_HOST="true",
-            PLATFORM_OSX_ARM64="true",
+            PLATFORM_OSX_ARM64=str(convert).lower(),
+            HOST_FORMAT=host_format,
             CONDA_BUILD_ARGS="--package-format 1",
             CONDA_CONVERT_ARGS="",
             TMPDIR=str(root),
@@ -104,6 +114,7 @@ class CompilationEnvironmentTests(unittest.TestCase):
                     ["mambabuild" if mambabuild else "build", "convert"],
                 )
                 self.assertIn("--no-anaconda-upload", calls[0])
+                self.assertNotIn("--python", calls[0])
                 paths = json.loads(outputs["built_paths_json"])
                 self.assertEqual(len(paths), 2)
                 self.assertEqual(
@@ -136,3 +147,25 @@ class CompilationEnvironmentTests(unittest.TestCase):
             self.assertEqual(result.returncode, 37, result.stderr)
             self.assertEqual([call[0] for call in calls], ["build", "convert"])
             self.assertNotIn("built_paths_json", outputs)
+
+    def test_modern_archive_conversion_fails_before_conversion_or_host_removal(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            result, calls, outputs = self._compile(root, host_format=".conda")
+            self.assertEqual(result.returncode, 1)
+            self.assertIn("--package-format 1", result.stdout)
+            self.assertEqual([call[0] for call in calls], ["build"])
+            self.assertNotIn("built_paths_json", outputs)
+            self.assertEqual(len(list(root.rglob("*.conda"))), 1)
+
+    def test_modern_host_archive_remains_available_without_conversion(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            result, calls, outputs = self._compile(
+                Path(temporary), host_format=".conda", convert=False
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual([call[0] for call in calls], ["build"])
+            paths = json.loads(outputs["built_paths_json"])
+            self.assertEqual(len(paths), 1)
+            self.assertTrue(Path(paths[0]).is_file())
+            self.assertTrue(paths[0].endswith(".conda"))
